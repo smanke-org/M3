@@ -303,12 +303,29 @@ enum UpdateController {
         if allowSkip { alert.addButton(withTitle: "Skip This Version") }
         let consent = InstallConsent(button: install, window: alert.window)
         defer { consent.finish() }
-        NSApp.activate(ignoringOtherApps: true)
+        bringForward(alert)
 
         let response = alert.runModal()
         NSLog("M3 Tracker: update prompt response=\(response.rawValue) installPressed=\(consent.pressed)")
         if consent.pressed { return .install }
         return response == .alertThirdButtonReturn && allowSkip ? .skip : .cancel
+    }
+
+    /// Makes the app active with the alert in front, before `runModal()`.
+    ///
+    /// The check finishes after a network wait, by which time another app is
+    /// frontmost. Asking to activate with no window of ours on screen is then
+    /// refused, and the alert opened by `runModal()` sits in the background.
+    /// That kept "Update and Restart" disabled (InstallConsent waits for the app
+    /// to be active) until the user clicked the Dock icon. Ordering the alert's
+    /// window front with the request is honoured. Reproduced and verified with a
+    /// harness on macOS 27: without this, never active; with it, active and key
+    /// within 0.25 s.
+    @MainActor
+    private static func bringForward(_ alert: NSAlert) {
+        alert.layout()
+        NSApp.activate(ignoringOtherApps: true)
+        alert.window.makeKeyAndOrderFront(nil)
     }
 
     /// Makes "Update and Restart" respond only to a deliberate press.
@@ -369,6 +386,7 @@ enum UpdateController {
         }
     }
 
+    @MainActor
     private static func present(_ outcome: UpdateOutcome) {
         let alert = NSAlert()
         switch outcome {
@@ -384,7 +402,7 @@ enum UpdateController {
             alert.alertStyle = .warning
         }
         alert.addButton(withTitle: "OK")
-        NSApp.activate(ignoringOtherApps: true)
+        bringForward(alert)
         alert.runModal()
     }
 }
