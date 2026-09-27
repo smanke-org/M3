@@ -142,3 +142,16 @@ final class DistanceTextTests: XCTestCase {
                        "\(MetricsFormatter.hundredths(12.4)) mi")
     }
 }
+
+final class MenuBarTitleTests: XCTestCase {
+    func testShowsChosenTotalAndFallsBackWhenSyncIsOff() {
+        func points(_ allMacs: Bool, _ available: Bool) -> Double {
+            MenuBarSettings.titlePoints(showsAllMacs: allMacs, isSyncAvailable: available, thisMac: 10, allMacs: 25)
+        }
+        XCTAssertEqual(points(false, true), 10, "This Mac")
+        XCTAssertEqual(points(true, true), 25, "All Macs")
+        XCTAssertEqual(points(false, false), 10)
+        // Cached totals from the other Macs would go stale with sync off.
+        XCTAssertEqual(points(true, false), 10, "All Macs falls back to this Mac when iCloud Drive is off")
+    }
+}

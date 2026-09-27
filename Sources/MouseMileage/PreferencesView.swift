@@ -109,6 +109,24 @@ struct PreferencesView: View {
                 .toggleStyle(.checkbox)
                 .help("Looks for a newer release on GitHub a few seconds after launch. You are only asked if there is one.")
 
+            HStack {
+                Text("Menu bar shows")
+                Picker("Menu bar shows", selection: $viewModel.menuBarShowsAllMacs) {
+                    Text("This Mac").tag(false)
+                    Text("All Macs").tag(true)
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .fixedSize()
+            }
+            .padding(.top, 4)
+            if viewModel.menuBarShowsAllMacs && !viewModel.isSyncAvailable {
+                Text("iCloud Drive is off, so the menu bar shows this Mac until it's back on.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             if let error = viewModel.launchAtLoginError {
                 Text(error)
                     .font(.caption)

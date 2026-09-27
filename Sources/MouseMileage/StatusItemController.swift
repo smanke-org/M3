@@ -16,17 +16,16 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
 
-        statusItem.button?.title = MetricsStore.shared.menuBarText
         statusItem.button?.font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        updateTitle()
 
         buildMenu()
 
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(metricsDidUpdate),
-            name: MetricsStore.didUpdateNotification,
-            object: nil
-        )
+        // The title follows this Mac's counting, the other Macs' synced totals
+        // when it shows All Macs, and the setting choosing between them.
+        for name in [MetricsStore.didUpdateNotification, CloudSync.didUpdateNotification, MenuBarSettings.didChangeNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(updateTitle), name: name, object: nil)
+        }
     }
 
     private func buildMenu() {
@@ -84,8 +83,16 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
     }
 
-    @objc private func metricsDidUpdate() {
-        statusItem.button?.title = MetricsStore.shared.menuBarText
+    /// Runs on every mouse move, so it only sums a handful of cached totals.
+    @objc private func updateTitle() {
+        let sync = CloudSync.shared
+        let points = MenuBarSettings.titlePoints(
+            showsAllMacs: MenuBarSettings.showsAllMacs,
+            isSyncAvailable: sync.isAvailable,
+            thisMac: MetricsStore.shared.totalPoints,
+            allMacs: sync.allMacsPoints
+        )
+        statusItem.button?.title = MetricsStore.distanceText(forPoints: points)
     }
 
     @objc private func openPreferences() {

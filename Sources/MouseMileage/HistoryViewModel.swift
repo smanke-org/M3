@@ -3,8 +3,8 @@ import Foundation
 
 /// Feeds the totals and mileage charts shown in the menu bar dropdown.
 ///
-/// The charts combine every Mac on the iCloud account; the menu bar title and
-/// "This Mac" line stay this Mac's own.
+/// The charts combine every Mac on the iCloud account; the "This Mac" line stays
+/// this Mac's own. (The menu bar title is set by `MenuBarSettings`.)
 final class HistoryViewModel: ObservableObject {
     @Published var byHour: [MileageHistoryStore.Bucket] = []
     @Published var byDay: [MileageHistoryStore.Bucket] = []
