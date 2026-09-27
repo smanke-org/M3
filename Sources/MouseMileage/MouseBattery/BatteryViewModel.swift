@@ -22,6 +22,7 @@ final class BatteryViewModel: ObservableObject {
     @Published var selectedKey: String?
 
     private var observers: [NSObjectProtocol] = []
+    private var refreshScheduled = false
 
     init() {
         refresh()
@@ -29,6 +30,22 @@ final class BatteryViewModel: ObservableObject {
             observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 self?.refresh()
             })
+        }
+        // Distance grows with every mouse move, which is far more often than
+        // the numbers need redrawing: follow it at most once a second.
+        observers.append(NotificationCenter.default.addObserver(
+            forName: MetricsStore.didUpdateNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.scheduleRefresh()
+        })
+    }
+
+    private func scheduleRefresh() {
+        guard isEnabled, !refreshScheduled else { return }
+        refreshScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            self?.refreshScheduled = false
+            self?.refresh()
         }
     }
 
