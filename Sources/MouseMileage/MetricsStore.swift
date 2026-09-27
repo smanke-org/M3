@@ -87,14 +87,14 @@ final class MetricsStore {
         dirty = true
         saveIfNeeded()
         MileageHistoryStore.shared.resetHistory()
-        notifyChanged()
+        didReset()
     }
 
     func resetKeystrokes() {
         keystrokes = 0
         dirty = true
         saveIfNeeded()
-        notifyChanged()
+        didReset()
     }
 
     func resetClicks() {
@@ -102,7 +102,7 @@ final class MetricsStore {
         rightClicks = 0
         dirty = true
         saveIfNeeded()
-        notifyChanged()
+        didReset()
     }
 
     func resetAll() {
@@ -115,7 +115,7 @@ final class MetricsStore {
         dirty = true
         saveIfNeeded()
         MileageHistoryStore.shared.resetHistory()
-        notifyChanged()
+        didReset()
     }
 
     // MARK: - Derived values
@@ -125,11 +125,17 @@ final class MetricsStore {
     var totalMiles: Double { totalFeet / feetPerMile }
 
     /// Menu bar text: feet (to tenths) when under a mile, otherwise miles (to hundredths).
-    var menuBarText: String {
-        if totalMiles < 1.0 {
-            return "\(MetricsFormatter.tenths(totalFeet)) ft"
+    var menuBarText: String { Self.distanceText(forPoints: totalPoints) }
+
+    /// Points travelled → display text. Shared by this Mac's total and the All
+    /// Macs total so both follow the same feet-under-a-mile rule.
+    static func distanceText(forPoints points: Double) -> String {
+        let feet = points / 72.0 / 12.0
+        let miles = feet / 5280.0
+        if miles < 1.0 {
+            return "\(MetricsFormatter.tenths(feet)) ft"
         } else {
-            return "\(MetricsFormatter.hundredths(totalMiles)) mi"
+            return "\(MetricsFormatter.hundredths(miles)) mi"
         }
     }
 
@@ -137,6 +143,13 @@ final class MetricsStore {
 
     private func notifyChanged() {
         NotificationCenter.default.post(name: MetricsStore.didUpdateNotification, object: self)
+    }
+
+    /// Resets only ever touch this Mac's counters. Publish straight away rather
+    /// than on the next sync tick, so the other Macs' All Macs totals drop promptly.
+    private func didReset() {
+        notifyChanged()
+        CloudSync.shared.publishNow()
     }
 
     func saveIfNeeded() {

@@ -68,6 +68,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         historyViewModel.refresh()
+        // Opens with the last-known totals; the view model refreshes again when
+        // this read of the other Macs' files lands.
+        CloudSync.shared.refreshRemote()
         launchUpdateCheckItem?.state = UpdateSettings.checkForUpdatesAtLaunch ? .on : .off
 
         // A release found by the launch check is offered here rather than prompted

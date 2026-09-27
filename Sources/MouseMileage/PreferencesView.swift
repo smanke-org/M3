@@ -11,6 +11,8 @@ struct PreferencesView: View {
                 accessibilityWarning
             }
             Divider()
+            allMacsSection
+            Divider()
             settingsSection
             Divider()
             resetSection
@@ -22,13 +24,55 @@ struct PreferencesView: View {
 
     private var statsSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Mileage: \(viewModel.mileageText)")
+            Text("Mileage (this Mac): \(viewModel.mileageText)")
             Text("Keystrokes: \(viewModel.keystrokesText)")
             Text("Clicks — \(viewModel.clicksText)")
             Text("Tracking since: \(viewModel.trackingSinceText)")
                 .foregroundStyle(.secondary)
         }
         .font(.system(size: 13))
+    }
+
+    /// Where the All Macs total comes from, so it can be explained and a Mac that
+    /// has stopped syncing is easy to spot.
+    private var allMacsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("All Macs")
+                    .font(.system(size: 13, weight: .semibold))
+                Spacer()
+                if viewModel.isSyncAvailable {
+                    Text(viewModel.allMacsText)
+                        .font(.system(size: 13, weight: .semibold))
+                        .monospacedDigit()
+                }
+            }
+
+            if viewModel.isSyncAvailable {
+                ForEach(viewModel.macRows) { row in
+                    HStack(alignment: .firstTextBaseline) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(row.name)
+                            Text(row.status)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Text(row.distance).monospacedDigit()
+                    }
+                    .font(.system(size: 13))
+                }
+                Text("Synced through iCloud Drive › M3 Tracker. Deleting a Mac's file there removes it from the total.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Turn on iCloud Drive to combine mileage from all your Macs signed in to the same Apple Account.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     /// Mouse events arrive without permission but key events don't, so without

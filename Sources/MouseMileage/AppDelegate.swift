@@ -15,6 +15,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         eventMonitor.requestPermissionIfNeeded()
         eventMonitor.start()
 
+        // Shares this Mac's totals with the user's other Macs via iCloud Drive.
+        CloudSync.shared.start()
+
         scheduleLaunchUpdateCheck()
     }
 
@@ -31,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         MetricsStore.shared.saveIfNeeded()
         MileageHistoryStore.shared.saveIfNeeded()
+        CloudSync.shared.publishNow(synchronously: true)
         eventMonitor.stop()
     }
 }

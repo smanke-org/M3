@@ -8,6 +8,23 @@ final class PreferencesViewModel: ObservableObject {
     @Published var clicksText: String = ""
     @Published var trackingSinceText: String = ""
 
+    /// One row per Mac contributing to the All Macs total, this Mac first.
+    struct MacRow: Identifiable {
+        let id: String
+        let name: String
+        let distance: String
+        let status: String
+    }
+    @Published var macRows: [MacRow] = []
+    @Published var allMacsText: String = ""
+    @Published var isSyncAvailable = false
+
+    private static let syncedFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return formatter
+    }()
+
     private static let startedFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -24,6 +41,9 @@ final class PreferencesViewModel: ObservableObject {
     @Published var isAccessibilityTrusted: Bool = AXIsProcessTrusted()
 
     private var metricsObserver: NSObjectProtocol?
+    private var syncObserver: NSObjectProtocol?
+    /// Looked up once rather than in `refreshText`, which runs on every mouse move.
+    private var thisMacName = DeviceIdentity.deviceName
 
     init() {
         launchAtLoginEnabled = LaunchAtLoginController.isEnabled
@@ -37,11 +57,21 @@ final class PreferencesViewModel: ObservableObject {
         ) { [weak self] _ in
             self?.refreshText()
         }
+        syncObserver = NotificationCenter.default.addObserver(
+            forName: CloudSync.didUpdateNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshText()
+        }
     }
 
     deinit {
         if let metricsObserver {
             NotificationCenter.default.removeObserver(metricsObserver)
+        }
+        if let syncObserver {
+            NotificationCenter.default.removeObserver(syncObserver)
         }
     }
 
@@ -55,6 +85,32 @@ final class PreferencesViewModel: ObservableObject {
         let days = Calendar.current.dateComponents([.day], from: started, to: Date()).day ?? 0
         let span = days == 0 ? "today" : (days == 1 ? "1 day" : "\(MetricsFormatter.count(days)) days")
         trackingSinceText = "\(Self.startedFormatter.string(from: started)) (\(span))"
+
+        refreshMacs()
+    }
+
+    private func refreshMacs() {
+        let sync = CloudSync.shared
+        isSyncAvailable = sync.isAvailable
+        allMacsText = MetricsStore.distanceText(forPoints: sync.allMacsPoints)
+
+        let thisMac = MacRow(
+            id: DeviceIdentity.deviceID,
+            name: thisMacName,
+            distance: MetricsStore.shared.menuBarText,
+            status: "This Mac"
+        )
+        let others = sync.remoteRecords.values
+            .sorted { $0.deviceName.localizedCaseInsensitiveCompare($1.deviceName) == .orderedAscending }
+            .map { record in
+                MacRow(
+                    id: record.deviceID,
+                    name: record.deviceName,
+                    distance: MetricsStore.distanceText(forPoints: record.totalPoints),
+                    status: "Synced \(Self.syncedFormatter.localizedString(for: record.updatedAt, relativeTo: Date()))"
+                )
+            }
+        macRows = [thisMac] + others
     }
 
     /// Picks up changes made elsewhere (the menu bar toggle, or System
@@ -62,6 +118,7 @@ final class PreferencesViewModel: ObservableObject {
     func refreshSettings() {
         launchAtLoginEnabled = LaunchAtLoginController.isEnabled
         isAccessibilityTrusted = AXIsProcessTrusted()
+        thisMacName = DeviceIdentity.deviceName
         if checkForUpdatesAtLaunch != UpdateSettings.checkForUpdatesAtLaunch {
             checkForUpdatesAtLaunch = UpdateSettings.checkForUpdatesAtLaunch
         }

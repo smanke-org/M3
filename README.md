@@ -39,6 +39,52 @@ The app checks for updates on demand from the menu bar dropdown
   before clearing. It also has a "Launch at Login" checkbox, backed by
   `SMAppService` (`LaunchAtLoginController.swift`).
 
+## Combined mileage across Macs
+
+Every Mac signed in to the same Apple Account shares its totals through iCloud
+Drive, so each one can show **This Mac** and **All Macs** side by side. The menu
+bar title stays this Mac's own; the dropdown shows both, and its charts combine
+every Mac. Preferences lists each Mac with its mileage and when it last synced.
+
+`CloudSync.swift` does this with plain files, one per Mac:
+
+```
+iCloud Drive/M3 Tracker/Devices/<device id>.json
+```
+
+- **Each Mac writes only its own file** and reads everyone else's, so there are
+  no sync conflicts to resolve. Files hold cumulative totals, so a stale,
+  repeated, or delayed write can never double-count. This Mac's own file is
+  ignored when reading; its live totals are used instead.
+- **No iCloud entitlement is needed.** The app isn't sandboxed, so this is
+  ordinary file I/O into iCloud Drive — no App ID, provisioning profile, or
+  entitlements file. It does need iCloud Drive turned on; when it's off, All
+  Macs says so and the charts fall back to this Mac.
+- **The device ID** is a hash of the hardware UUID: stable across reinstalls,
+  not carried to a new Mac by Migration Assistant (so two Macs never share a
+  file), and the raw hardware identifier never reaches iCloud.
+- **Charts** are merged on this Mac's calendar. A Mac in another time zone has
+  different day boundaries, so each of its buckets is assigned to the local day
+  (or hour) it overlaps most, rather than splitting a day in two.
+- **Writes** happen once a minute when something changed, and immediately on
+  reset, sleep, and quit. Reads happen on the same timer and when the menu opens.
+  File access is coordinated and kept off the main thread.
+- **Resets affect this Mac only.** Its file drops to zero; the other Macs keep
+  their own counts.
+- **Retiring a Mac:** its file keeps counting, since those miles happened.
+  Delete its file from `iCloud Drive/M3 Tracker/Devices` to remove it — the
+  name shown in Preferences identifies which Mac is which.
+- **Evicted files:** if iCloud Drive offloads a file to save space, the app asks
+  for it back and keeps using the last-known totals meanwhile.
+
+One known limitation: a Mac set up with Migration Assistant from another Mac
+that is *still in use* inherits the old Mac's totals, so miles from before the
+migration count twice. Resetting on the new Mac fixes it.
+
+`M3_SYNC_FOLDER` redirects the folder, which the tests use so they never touch
+real iCloud data. A debug build shares the installed app's device ID, so set it
+when running one alongside the installed app.
+
 ## Auto-update
 
 `UpdateController.swift` checks `https://api.github.com/repos/smanke/M3/releases/latest`,
@@ -87,7 +133,14 @@ events on its own.
 ## Running during development
 
 ```bash
-swift run
+M3_SYNC_FOLDER=/tmp/m3-sync swift run
+```
+
+`M3_SYNC_FOLDER` keeps a debug run from overwriting the installed app's iCloud
+file. Tests cover chart merging across time zones and the sync-folder behavior:
+
+```bash
+swift test
 ```
 
 ## Building the .app

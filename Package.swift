@@ -8,6 +8,11 @@ let package = Package(
         .executableTarget(
             name: "MouseMileage",
             path: "Sources/MouseMileage"
+        ),
+        .testTarget(
+            name: "MouseMileageTests",
+            dependencies: ["MouseMileage"],
+            path: "Tests/MouseMileageTests"
         )
     ]
 )

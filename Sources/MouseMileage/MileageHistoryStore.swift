@@ -6,7 +6,7 @@ import Foundation
 final class MileageHistoryStore {
     static let shared = MileageHistoryStore()
 
-    struct Bucket: Codable, Identifiable {
+    struct Bucket: Codable, Identifiable, Equatable {
         var start: Date
         var points: Double
         var id: Date { start }
@@ -92,6 +92,38 @@ final class MileageHistoryStore {
         daily.map(\.start).min()
     }
 
+    /// This Mac's raw buckets (points, not miles), for publishing to the other Macs.
+    var hourlyBuckets: [Bucket] { hourly }
+    var dailyBuckets: [Bucket] { daily }
+
+    /// Combines bucket sets from several Macs into one series on *this* Mac's calendar.
+    ///
+    /// Another Mac may be in a different time zone, so its day (and, for half-hour
+    /// offsets, hour) boundaries don't line up with ours: summing on the raw `start`
+    /// would split one day into two. Each bucket is instead re-keyed to the local
+    /// hour or day containing its midpoint — the local period it overlaps most.
+    static func merge(_ sets: [[Bucket]], unit: Calendar.Component, calendar: Calendar) -> [Bucket] {
+        let halfSpan: TimeInterval = unit == .hour ? 30 * 60 : 12 * 3600
+        var byStart: [Date: Double] = [:]
+        for set in sets {
+            for bucket in set {
+                let midpoint = bucket.start.addingTimeInterval(halfSpan)
+                let key = unit == .hour
+                    ? (calendar.dateInterval(of: .hour, for: midpoint)?.start ?? bucket.start)
+                    : calendar.startOfDay(for: midpoint)
+                byStart[key, default: 0] += bucket.points
+            }
+        }
+        return byStart
+            .map { Bucket(start: $0.key, points: $0.value) }
+            .sorted { $0.start < $1.start }
+    }
+
+    /// `merge` on this store's own calendar.
+    func merge(_ sets: [[Bucket]], unit: Calendar.Component) -> [Bucket] {
+        Self.merge(sets, unit: unit, calendar: calendar)
+    }
+
     func resetHistory() {
         hourly = []
         daily = []
@@ -111,11 +143,13 @@ final class MileageHistoryStore {
     /// Today's mileage broken out by hour-of-day (00:00–23:00), rather than a rolling
     /// 24-hour window. Hours after "now" are included as zero so the chart's x-axis
     /// spans the full day with a "now" marker partway through.
-    func todayByHour(now: Date = Date()) -> [Bucket] {
+    ///
+    /// `source` defaults to this Mac's buckets; pass a merged set to chart all Macs.
+    func todayByHour(from source: [Bucket]? = nil, now: Date = Date()) -> [Bucket] {
         let dayStart = calendar.startOfDay(for: now)
         var byStart: [Date: Double] = [:]
-        for bucket in hourly where bucket.start >= dayStart {
-            byStart[bucket.start] = bucket.points
+        for bucket in (source ?? hourly) where bucket.start >= dayStart {
+            byStart[bucket.start, default: 0] += bucket.points
         }
 
         var result: [Bucket] = []
@@ -126,17 +160,17 @@ final class MileageHistoryStore {
         return result.map(toMiles)
     }
 
-    func last7Days(now: Date = Date()) -> [Bucket] {
+    func last7Days(from source: [Bucket]? = nil, now: Date = Date()) -> [Bucket] {
         let cutoff = calendar.date(byAdding: .day, value: -6, to: calendar.startOfDay(for: now)) ?? now
-        var buckets = daily.filter { $0.start >= cutoff }
+        var buckets = (source ?? daily).filter { $0.start >= cutoff }
         buckets = fillGaps(buckets, unit: .day, from: cutoff, to: now)
         return buckets.map(toMiles)
     }
 
-    func yearToDate(now: Date = Date()) -> [Bucket] {
+    func yearToDate(from source: [Bucket]? = nil, now: Date = Date()) -> [Bucket] {
         let components = calendar.dateComponents([.year], from: now)
         let jan1 = calendar.date(from: DateComponents(year: components.year, month: 1, day: 1)) ?? now
-        var buckets = daily.filter { $0.start >= jan1 }
+        var buckets = (source ?? daily).filter { $0.start >= jan1 }
         buckets = fillGaps(buckets, unit: .day, from: jan1, to: now)
         return buckets.map(toMiles)
     }
@@ -148,7 +182,7 @@ final class MileageHistoryStore {
     /// Fills in zero-value buckets for hours/days with no recorded movement so charts show continuous axes.
     private func fillGaps(_ buckets: [Bucket], unit: Calendar.Component, from: Date, to: Date) -> [Bucket] {
         var byStart: [Date: Double] = [:]
-        for b in buckets { byStart[b.start] = b.points }
+        for b in buckets { byStart[b.start, default: 0] += b.points }
 
         var result: [Bucket] = []
         var cursor = unit == .hour ? (calendar.dateInterval(of: .hour, for: from)?.start ?? from) : calendar.startOfDay(for: from)

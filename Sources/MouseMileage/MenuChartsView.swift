@@ -8,12 +8,36 @@ struct MenuChartsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(AppInfo.displayName)
                 .font(.system(size: 13, weight: .semibold))
+            totals
+            Text(viewModel.chartsScopeText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
             ChartCard(title: "Today by Hour", buckets: viewModel.byHour, xAxisStyle: .hour)
             ChartCard(title: "By Day", buckets: viewModel.byDay, xAxisStyle: .day)
             ChartCard(title: "Year to Date", buckets: viewModel.yearToDate, xAxisStyle: .month)
         }
         .padding(14)
         .frame(width: 340)
+    }
+
+    private var totals: some View {
+        Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 4) {
+            GridRow {
+                Text("This Mac").foregroundStyle(.secondary)
+                Text(viewModel.thisMacText).monospacedDigit()
+            }
+            GridRow {
+                Text("All Macs").foregroundStyle(.secondary)
+                Text(viewModel.allMacsText).monospacedDigit()
+            }
+        }
+        .font(.system(size: 13))
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.gray.opacity(0.08))
+        )
     }
 }
 
