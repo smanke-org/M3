@@ -7,8 +7,23 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let historyViewModel = HistoryViewModel()
     private let batteryViewModel = BatteryViewModel()
     private var chartsItem: NSMenuItem?
-    /// Whether the charts view was sized with the Battery card in it.
-    private var chartsIncludeBattery = false
+    /// "More Charts ▸": a submenu holding one view with the flyout's cards.
+    private var flyoutItem: NSMenuItem?
+    private let flyoutMenu = NSMenu()
+    /// The card lists the views were built with. Hosting views are measured
+    /// once, so they're rebuilt (only) when this changes.
+    private var builtLayout: Layout?
+
+    private struct Layout: Equatable {
+        var menu: [MenuCard]
+        var flyout: [MenuCard]
+
+        static var current: Layout {
+            let battery = MouseBatteryMonitor.shared.isEnabled
+            return Layout(menu: MenuCard.visible(in: MenuLayoutSettings.menuCards, batteryEnabled: battery),
+                          flyout: MenuCard.visible(in: MenuLayoutSettings.flyoutCards, batteryEnabled: battery))
+        }
+    }
     /// Held so its checkmark can be refreshed on open; the menu itself is
     /// built once because the charts item hosts a live SwiftUI view.
     private var launchUpdateCheckItem: NSMenuItem?
@@ -38,8 +53,15 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         let chartsItem = NSMenuItem()
         self.chartsItem = chartsItem
-        installChartsView()
         menu.addItem(chartsItem)
+
+        let flyoutItem = NSMenuItem(title: "More Charts", action: nil, keyEquivalent: "")
+        flyoutMenu.delegate = self
+        flyoutMenu.addItem(NSMenuItem())
+        flyoutItem.submenu = flyoutMenu
+        self.flyoutItem = flyoutItem
+        menu.addItem(flyoutItem)
+        installChartsViews()
 
         menu.addItem(.separator())
         menu.addItem(withTitle: "Preferences…", action: #selector(openPreferences), keyEquivalent: ",")
@@ -69,19 +91,35 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     /// A fresh hosting view measures its height from the current content, so
-    /// this is redone when the Battery card is switched on or off.
-    private func installChartsView() {
-        let hostingView = NSHostingView(rootView: MenuChartsView(viewModel: historyViewModel, batteryViewModel: batteryViewModel))
-        hostingView.frame = NSRect(x: 0, y: 0, width: 340, height: hostingView.fittingSize.height)
-        chartsItem?.view = hostingView
-        chartsIncludeBattery = batteryViewModel.isEnabled
+    /// the views are rebuilt when the chosen cards (or the Battery card) change.
+    private func installChartsViews() {
+        let layout = Layout.current
+        chartsItem?.view = hostingView(MenuChartsView(viewModel: historyViewModel, batteryViewModel: batteryViewModel,
+                                                      cards: layout.menu))
+
+        // Two columns once there are several cards, so the flyout fits a laptop screen too.
+        let columns = layout.flyout.count >= 4 ? 2 : 1
+        flyoutMenu.items.first?.view = hostingView(MenuChartsView(viewModel: historyViewModel, batteryViewModel: batteryViewModel,
+                                                                  cards: layout.flyout, showsTotals: false, columns: columns))
+        flyoutItem?.isHidden = layout.flyout.isEmpty
+        builtLayout = layout
+    }
+
+    private func hostingView(_ view: MenuChartsView) -> NSView {
+        let hostingView = NSHostingView(rootView: view)
+        hostingView.frame = NSRect(x: 0, y: 0, width: MenuChartsView.width(columns: view.columns),
+                                   height: hostingView.fittingSize.height)
+        return hostingView
     }
 
     func menuWillOpen(_ menu: NSMenu) {
         historyViewModel.refresh()
         batteryViewModel.refresh()
-        if chartsIncludeBattery != batteryViewModel.isEnabled {
-            installChartsView()
+        // Opening the flyout only refreshes its data; its view was built, and
+        // the rest of the menu updated, when the main menu opened.
+        guard menu !== flyoutMenu else { return }
+        if builtLayout != Layout.current {
+            installChartsViews()
         }
         // Opens with the last-known totals; the view model refreshes again when
         // this read of the other Macs' files lands.

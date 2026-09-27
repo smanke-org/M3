@@ -1,28 +1,65 @@
 import Charts
 import SwiftUI
 
+/// The menu dropdown's view (totals plus the cards chosen for the menu), and
+/// the More Charts flyout's (the cards chosen for it, in one or two columns).
 struct MenuChartsView: View {
     @ObservedObject var viewModel: HistoryViewModel
     @ObservedObject var batteryViewModel: BatteryViewModel
+    var cards: [MenuCard]
+    var showsTotals = true
+    var columns = 1
+
+    static let columnWidth: CGFloat = 340
+    private static let spacing: CGFloat = 12
+
+    static func width(columns: Int) -> CGFloat {
+        CGFloat(columns) * columnWidth - CGFloat(columns - 1) * 14
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(AppInfo.displayName)
-                .font(.system(size: 13, weight: .semibold))
-            totals
-            Text(viewModel.chartsScopeText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            TopAppsCard(viewModel: viewModel)
-            if batteryViewModel.isEnabled {
-                BatteryCard(viewModel: batteryViewModel)
+        VStack(alignment: .leading, spacing: Self.spacing) {
+            if showsTotals {
+                Text(AppInfo.displayName)
+                    .font(.system(size: 13, weight: .semibold))
+                totals
             }
-            ChartCard(title: "Today by Hour", buckets: viewModel.byHour, xAxisStyle: .hour)
-            ChartCard(title: "By Day", buckets: viewModel.byDay, xAxisStyle: .day)
-            ChartCard(title: "Year to Date", buckets: viewModel.yearToDate, xAxisStyle: .month)
+            if !cards.isEmpty {
+                Text(viewModel.chartsScopeText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if columns > 1 {
+                // Reading order runs down the left column, then the right.
+                let split = (cards.count + 1) / 2
+                HStack(alignment: .top, spacing: 14) {
+                    column(Array(cards.prefix(split)))
+                    column(Array(cards.dropFirst(split)))
+                }
+            } else {
+                column(cards)
+            }
         }
         .padding(14)
-        .frame(width: 340)
+        .frame(width: Self.width(columns: columns))
+    }
+
+    private func column(_ cards: [MenuCard]) -> some View {
+        VStack(alignment: .leading, spacing: Self.spacing) {
+            ForEach(cards) { card($0) }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    @ViewBuilder
+    private func card(_ card: MenuCard) -> some View {
+        switch card {
+        case .topApps: TopAppsCard(viewModel: viewModel)
+        case .battery: BatteryCard(viewModel: batteryViewModel)
+        case .todayByHour: ChartCard(title: card.title, buckets: viewModel.byHour, xAxisStyle: .hour)
+        case .byDay: ChartCard(title: card.title, buckets: viewModel.byDay, xAxisStyle: .day)
+        case .yearToDate: ChartCard(title: card.title, buckets: viewModel.yearToDate, xAxisStyle: .month)
+        }
     }
 
     private var totals: some View {

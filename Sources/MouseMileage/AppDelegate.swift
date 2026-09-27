@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         UpdateSettings.registerDefaults()
         MenuBarSettings.registerDefaults()
+        MenuLayoutSettings.registerDefaults()
 
         statusItemController = StatusItemController()
 

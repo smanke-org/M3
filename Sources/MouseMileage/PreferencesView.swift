@@ -11,6 +11,8 @@ struct PreferencesView: View {
         TabView {
             general
                 .tabItem { Label("General", systemImage: "gearshape") }
+            page { menuSection }
+                .tabItem { Label("Menu", systemImage: "menubar.rectangle") }
             page { appsSection }
                 .tabItem { Label("Apps", systemImage: "square.grid.2x2") }
             page { BatteryPreferencesView(viewModel: batteryViewModel) }
@@ -192,32 +194,69 @@ struct PreferencesView: View {
                 .toggleStyle(.checkbox)
                 .help("Looks for a newer release on GitHub a few seconds after launch. You are only asked if there is one.")
 
-            HStack {
-                Text("Menu bar shows")
-                Picker("Menu bar shows", selection: $viewModel.menuBarShowsAllMacs) {
-                    Text("This Mac").tag(false)
-                    Text("All Macs").tag(true)
-                }
-                .labelsHidden()
-                .pickerStyle(.segmented)
-                .fixedSize()
-            }
-            .padding(.top, 4)
-            Toggle("Mark the All Macs total with \(MenuBarSettings.allMacsMarker)", isOn: $viewModel.menuBarMarksAllMacs)
-                .toggleStyle(.checkbox)
-                .disabled(!viewModel.menuBarShowsAllMacs)
-                .help("Prefixes the menu bar title with \(MenuBarSettings.allMacsMarker) while it shows all Macs, so it can't be mistaken for this Mac's mileage.")
-            if viewModel.menuBarShowsAllMacs && !viewModel.isSyncAvailable {
-                Text("iCloud Drive is off, so the menu bar shows this Mac until it's back on.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
 
             if let error = viewModel.launchAtLoginError {
                 Text(error)
                     .font(.caption)
                     .foregroundStyle(.red)
+            }
+        }
+    }
+
+    /// The menu bar title, and which cards the dropdown and its flyout show.
+    private var menuSection: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Menu bar shows")
+                    Picker("Menu bar shows", selection: $viewModel.menuBarShowsAllMacs) {
+                        Text("This Mac").tag(false)
+                        Text("All Macs").tag(true)
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                }
+                Toggle("Mark the All Macs total with \(MenuBarSettings.allMacsMarker)", isOn: $viewModel.menuBarMarksAllMacs)
+                    .toggleStyle(.checkbox)
+                    .disabled(!viewModel.menuBarShowsAllMacs)
+                    .help("Prefixes the menu bar title with \(MenuBarSettings.allMacsMarker) while it shows all Macs, so it can't be mistaken for this Mac's mileage.")
+                if viewModel.menuBarShowsAllMacs && !viewModel.isSyncAvailable {
+                    Text("iCloud Drive is off, so the menu bar shows this Mac until it's back on.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Cards")
+                    .font(.system(size: 13, weight: .semibold))
+                Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 6) {
+                    GridRow {
+                        Text("")
+                        Text("Menu").font(.caption).foregroundStyle(.secondary)
+                        Text("More Charts").font(.caption).foregroundStyle(.secondary)
+                    }
+                    ForEach(MenuCard.allCases) { card in
+                        GridRow {
+                            Text(card.title)
+                            Toggle(card.title, isOn: viewModel.binding(card, inMenu: true))
+                                .labelsHidden()
+                                .gridColumnAlignment(.center)
+                            Toggle(card.title, isOn: viewModel.binding(card, inMenu: false))
+                                .labelsHidden()
+                                .gridColumnAlignment(.center)
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                }
+                Text("Every card in the menu makes it taller. On a laptop screen, keep one or two there so it doesn't scroll, and open the rest from More Charts. Mileage per Charge appears only while it's turned on in Battery.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

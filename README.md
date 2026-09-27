@@ -91,6 +91,16 @@ migration count twice. Resetting on the new Mac fixes it.
 real iCloud data. A debug build shares the installed app's device ID, so set it
 when running one alongside the installed app.
 
+## Menu layout
+
+The dropdown always starts with the This Mac / All Macs totals. Beneath them,
+each card (Top Apps, Mileage per Charge, Today by Hour, By Day and Year to Date)
+can go in the menu, in the **More Charts ▸** flyout, in both, or in neither.
+They're set in Preferences › **Menu**. By default the menu holds only Today by
+Hour and the flyout holds everything, so the menu fits a laptop screen without
+scrolling. The flyout lays out four or more cards in two columns. Both views are
+measured when they're built, so they are rebuilt whenever the choice changes.
+
 ## Mileage per app
 
 Mileage, clicks, and keystrokes are also credited to whichever app **has focus**

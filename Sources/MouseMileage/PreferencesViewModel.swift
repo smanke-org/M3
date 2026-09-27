@@ -1,6 +1,7 @@
 import ApplicationServices
 import Combine
 import Foundation
+import SwiftUI
 
 final class PreferencesViewModel: ObservableObject {
     @Published var mileageText: String = ""
@@ -155,6 +156,21 @@ final class PreferencesViewModel: ObservableObject {
         if menuBarMarksAllMacs != MenuBarSettings.marksAllMacs {
             menuBarMarksAllMacs = MenuBarSettings.marksAllMacs
         }
+    }
+
+    /// A card's checkbox for the menu, or for the More Charts flyout.
+    func binding(_ card: MenuCard, inMenu: Bool) -> Binding<Bool> {
+        Binding(
+            get: { (inMenu ? MenuLayoutSettings.menuCards : MenuLayoutSettings.flyoutCards).contains(card) },
+            set: { [weak self] isOn in
+                self?.objectWillChange.send()
+                if inMenu {
+                    if isOn { MenuLayoutSettings.menuCards.insert(card) } else { MenuLayoutSettings.menuCards.remove(card) }
+                } else {
+                    if isOn { MenuLayoutSettings.flyoutCards.insert(card) } else { MenuLayoutSettings.flyoutCards.remove(card) }
+                }
+            }
+        )
     }
 
     func toggleLaunchAtLogin(_ enabled: Bool) {
