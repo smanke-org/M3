@@ -20,6 +20,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         eventMonitor.requestPermissionIfNeeded()
         eventMonitor.start()
 
+        // Mileage per battery charge, if the user has turned it on.
+        MouseBatteryMonitor.shared.startIfEnabled()
+
         // Shares this Mac's totals with the user's other Macs via iCloud Drive.
         CloudSync.shared.start()
 
@@ -40,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MetricsStore.shared.saveIfNeeded()
         MileageHistoryStore.shared.saveIfNeeded()
         AppUsageStore.shared.saveIfNeeded()
+        ChargeStore.shared.saveIfNeeded()
         CloudSync.shared.publishNow(synchronously: true)
         eventMonitor.stop()
     }

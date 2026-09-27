@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MenuChartsView: View {
     @ObservedObject var viewModel: HistoryViewModel
+    @ObservedObject var batteryViewModel: BatteryViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -13,6 +14,9 @@ struct MenuChartsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             TopAppsCard(viewModel: viewModel)
+            if batteryViewModel.isEnabled {
+                BatteryCard(viewModel: batteryViewModel)
+            }
             ChartCard(title: "Today by Hour", buckets: viewModel.byHour, xAxisStyle: .hour)
             ChartCard(title: "By Day", buckets: viewModel.byDay, xAxisStyle: .day)
             ChartCard(title: "Year to Date", buckets: viewModel.yearToDate, xAxisStyle: .month)

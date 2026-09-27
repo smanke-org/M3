@@ -60,6 +60,9 @@ struct DeviceRecord: Codable, Equatable {
     var appDays: [AppDay]? = nil
     var appNames: [String: String]? = nil
 
+    // Mileage per battery charge, added in 1.15.0. Optional for the same reason.
+    var mice: [MouseLog]? = nil
+
     /// This Mac's per-app data in the form the ranking takes.
     var appSnapshot: AppUsageSnapshot {
         AppUsageSnapshot(allTime: apps ?? [:], days: appDays ?? [], names: appNames ?? [:])
@@ -183,6 +186,12 @@ final class CloudSync {
         [AppUsageStore.shared.snapshot] + activeRemoteRecords.map(\.appSnapshot)
     }
 
+    /// Every mouse's charge history, combined from this Mac and the others.
+    var mouseHistories: [MouseChargeHistory] {
+        let local = ChargeStore.shared.logs.values.sorted { $0.key < $1.key }
+        return ChargeStore.histories(from: local + activeRemoteRecords.flatMap { $0.mice ?? [] })
+    }
+
     // MARK: - Publishing this Mac's totals
 
     /// Writes this Mac's file now. `synchronously` waits (briefly) for the write,
@@ -214,7 +223,10 @@ final class CloudSync {
             daily: history.dailyBuckets,
             apps: AppUsageStore.shared.allTime,
             appDays: AppUsageStore.shared.days,
-            appNames: AppUsageStore.shared.names
+            appNames: AppUsageStore.shared.names,
+            // Left out entirely until a mouse has been seen, so files stay as
+            // they were for anyone not using the feature.
+            mice: ChargeStore.shared.logs.isEmpty ? nil : Array(ChargeStore.shared.logs.values)
         )
     }
 

@@ -62,6 +62,10 @@ final class MetricsStore {
         dirty = true
         MileageHistoryStore.shared.recordMovement(points: points)
         AppUsageStore.shared.record(points: points)
+        // Mileage per charge: only when a tracked mouse (not the trackpad) moved.
+        if let mouse = MouseBatteryMonitor.shared.movingMouseKey() {
+            ChargeStore.shared.record(points: points, mouse: mouse)
+        }
         notifyChanged()
     }
 

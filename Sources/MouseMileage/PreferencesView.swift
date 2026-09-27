@@ -3,8 +3,33 @@ import SwiftUI
 
 struct PreferencesView: View {
     @ObservedObject var viewModel: PreferencesViewModel
+    @ObservedObject var batteryViewModel: BatteryViewModel
 
+    // Tabs, because one page holding the apps list and the charge chart as
+    // well would be taller than a laptop screen.
     var body: some View {
+        TabView {
+            general
+                .tabItem { Label("General", systemImage: "gearshape") }
+            page { appsSection }
+                .tabItem { Label("Apps", systemImage: "square.grid.2x2") }
+            page { BatteryPreferencesView(viewModel: batteryViewModel) }
+                .tabItem { Label("Battery", systemImage: "battery.75") }
+        }
+        .padding(12)
+        .frame(width: 440)
+    }
+
+    private func page<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    private var general: some View {
         VStack(alignment: .leading, spacing: 20) {
             statsSection
             if !viewModel.isAccessibilityTrusted {
@@ -13,15 +38,12 @@ struct PreferencesView: View {
             Divider()
             allMacsSection
             Divider()
-            appsSection
-            Divider()
             settingsSection
             Divider()
             resetSection
             footer
         }
-        .padding(20)
-        .frame(width: 400)
+        .padding(16)
     }
 
     private var statsSection: some View {

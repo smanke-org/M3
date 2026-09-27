@@ -5,6 +5,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private let preferencesController = PreferencesWindowController()
     private let historyViewModel = HistoryViewModel()
+    private let batteryViewModel = BatteryViewModel()
+    private var chartsItem: NSMenuItem?
+    /// Whether the charts view was sized with the Battery card in it.
+    private var chartsIncludeBattery = false
     /// Held so its checkmark can be refreshed on open; the menu itself is
     /// built once because the charts item hosts a live SwiftUI view.
     private var launchUpdateCheckItem: NSMenuItem?
@@ -33,9 +37,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.delegate = self
 
         let chartsItem = NSMenuItem()
-        let hostingView = NSHostingView(rootView: MenuChartsView(viewModel: historyViewModel))
-        hostingView.frame = NSRect(x: 0, y: 0, width: 340, height: hostingView.fittingSize.height)
-        chartsItem.view = hostingView
+        self.chartsItem = chartsItem
+        installChartsView()
         menu.addItem(chartsItem)
 
         menu.addItem(.separator())
@@ -65,8 +68,21 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         statusItem.menu = menu
     }
 
+    /// A fresh hosting view measures its height from the current content, so
+    /// this is redone when the Battery card is switched on or off.
+    private func installChartsView() {
+        let hostingView = NSHostingView(rootView: MenuChartsView(viewModel: historyViewModel, batteryViewModel: batteryViewModel))
+        hostingView.frame = NSRect(x: 0, y: 0, width: 340, height: hostingView.fittingSize.height)
+        chartsItem?.view = hostingView
+        chartsIncludeBattery = batteryViewModel.isEnabled
+    }
+
     func menuWillOpen(_ menu: NSMenu) {
         historyViewModel.refresh()
+        batteryViewModel.refresh()
+        if chartsIncludeBattery != batteryViewModel.isEnabled {
+            installChartsView()
+        }
         // Opens with the last-known totals; the view model refreshes again when
         // this read of the other Macs' files lands.
         CloudSync.shared.refreshRemote()

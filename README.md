@@ -113,6 +113,36 @@ window still counts toward the app you're working in.
 - Resets clear the matching per-app metric too: Reset Mileage clears per-app
   distance, Reset Clicks per-app clicks, and so on.
 
+## Mileage per battery charge
+
+An optional tracker, off until turned on in Preferences › **Battery**, for how far
+a mouse travels on one charge, and whether that is rising or falling over time.
+It is kept apart from the main mileage and the per-app numbers: its reset touches
+nothing else, and theirs don't touch it.
+
+- **Supported mice:** Logitech mice over Bluetooth, Bolt, or Unifying, and Apple
+  Magic Mouse. Logitech batteries are read over HID++ (feature 0x1004, or 0x1000
+  on older mice), the way Logi Options+ reads them. macOS itself doesn't know an
+  MX Master's battery level. A Magic Mouse's level is read from the I/O Registry.
+  The Bluetooth path is verified with an MX Master 4. The receiver path follows
+  the same protocol but hasn't been tested on real hardware, and neither has
+  Magic Mouse.
+- **Only the mouse counts, not the trackpad.** The app watches each mouse's own
+  motion reports and credits a pointer move to a mouse only if it reported motion
+  in the last 100 ms. The distance uses the same units as the main mileage.
+- **Charges are derived from battery readings.** A charge ends at the first
+  reading that shows the mouse charging, or that has risen 10 or more points
+  above its lowest level (a recharge the app didn't see). The next charge starts
+  when the mouse is unplugged. Movement while on the cable belongs to no charge.
+- **Miles per full charge** is miles ÷ battery used × 100, so charges compare
+  fairly however low the battery ran. It appears once a charge has used 10%.
+- **Across Macs:** the mouse is identified by its serial number, so an
+  Easy-Switch mouse is one mouse on every Mac. Each Mac syncs its readings and
+  hourly movement for the mouse in its iCloud Drive file, and charges are worked
+  out from all of them together.
+- The menu gets a **Mileage per Charge** card, and Preferences › **Battery** has
+  the chart and the list of charges.
+
 ## Auto-update
 
 `UpdateController.swift` checks `https://api.github.com/repos/smanke/M3/releases/latest`,
@@ -157,6 +187,12 @@ settings when the app isn't trusted, the state is logged at launch, and the
 monitors are re-registered if trust is granted while the app is running —
 a monitor registered before trust was granted does not start receiving key
 events on its own.
+
+**Input Monitoring** is needed only for mileage per battery charge, and is only
+requested when that is turned on. Opening a mouse's HID device (to read its
+battery, and its motion) fails with `kIOReturnNotPermitted` without it. macOS
+may apply a new grant only after the app relaunches, and Preferences says so
+when that happens.
 
 ## Running during development
 
