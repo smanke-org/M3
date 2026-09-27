@@ -147,3 +147,24 @@ final class AppUsageResetTests: XCTestCase {
         XCTAssertNil(store.days.last?.apps[key])
     }
 }
+
+final class AppSortTests: XCTestCase {
+    private let rows = [
+        AppRanking.Row(id: "a", name: "Safari", usage: AppUsage(points: 10, clicks: 5, keystrokes: 0)),
+        AppRanking.Row(id: "b", name: "claude", usage: AppUsage(points: 30, clicks: 1, keystrokes: 900)),
+        AppRanking.Row(id: "c", name: "Finder", usage: AppUsage(points: 20, clicks: 5, keystrokes: 3)),
+    ]
+
+    func testSortsEachColumnBothWays() {
+        XCTAssertEqual(AppSortColumn.sorted(rows, by: .distance, ascending: false).map(\.id), ["b", "c", "a"])
+        XCTAssertEqual(AppSortColumn.sorted(rows, by: .distance, ascending: true).map(\.id), ["a", "c", "b"])
+        XCTAssertEqual(AppSortColumn.sorted(rows, by: .keystrokes, ascending: false).map(\.id), ["b", "c", "a"])
+        XCTAssertEqual(AppSortColumn.sorted(rows, by: .name, ascending: true).map(\.name), ["claude", "Finder", "Safari"], "case-insensitive")
+        XCTAssertEqual(AppSortColumn.sorted(rows, by: .name, ascending: false).map(\.name), ["Safari", "Finder", "claude"])
+    }
+
+    func testTiesFallBackToNameEitherWay() {
+        XCTAssertEqual(AppSortColumn.sorted(rows, by: .clicks, ascending: false).map(\.name), ["Finder", "Safari", "claude"])
+        XCTAssertEqual(AppSortColumn.sorted(rows, by: .clicks, ascending: true).map(\.name), ["claude", "Finder", "Safari"])
+    }
+}

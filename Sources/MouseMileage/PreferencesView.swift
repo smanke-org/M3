@@ -81,17 +81,16 @@ struct PreferencesView: View {
                     .foregroundStyle(.secondary)
             } else {
                 HStack(spacing: 8) {
-                    Text("App").frame(maxWidth: .infinity, alignment: .leading)
-                    Text("Distance").frame(width: 70, alignment: .trailing)
-                    Text("Clicks").frame(width: 52, alignment: .trailing)
-                    Text("Keys").frame(width: 60, alignment: .trailing)
+                    sortHeader("App", .name).frame(maxWidth: .infinity, alignment: .leading)
+                    sortHeader("Distance", .distance).frame(width: 70, alignment: .trailing)
+                    sortHeader("Clicks", .clicks).frame(width: 52, alignment: .trailing)
+                    sortHeader("Keys", .keystrokes).frame(width: 60, alignment: .trailing)
                 }
                 .font(.caption)
-                .foregroundStyle(.secondary)
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 5) {
-                        ForEach(viewModel.appRows) { app in
+                        ForEach(viewModel.sortedAppRows) { app in
                             HStack(spacing: 8) {
                                 HStack(spacing: 6) {
                                     Image(nsImage: AppIcons.icon(for: app.id))
@@ -116,6 +115,27 @@ struct PreferencesView: View {
                 .frame(maxHeight: 220)
             }
         }
+    }
+
+    /// A column title that sorts the list by that column; clicking it again
+    /// reverses the order. The sorted column shows an arrow and full contrast.
+    private func sortHeader(_ title: String, _ column: AppSortColumn) -> some View {
+        let isSorted = viewModel.appSort == column
+        return Button {
+            viewModel.sortApps(by: column)
+        } label: {
+            HStack(spacing: 2) {
+                Text(title)
+                if isSorted {
+                    Image(systemName: viewModel.appSortAscending ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 8, weight: .semibold))
+                }
+            }
+            .foregroundStyle(isSorted ? .primary : .secondary)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Sort by \(title.lowercased())")
     }
 
     /// Where the All Macs total comes from, so it can be explained and a Mac that

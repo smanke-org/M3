@@ -257,3 +257,31 @@ final class AppUsageStore {
         dirty = false
     }
 }
+
+/// A column the Preferences Apps list can be sorted by.
+enum AppSortColumn: String {
+    case name, distance, clicks, keystrokes
+
+    /// Ties fall back to the name, A–Z, so the order is stable either way round.
+    static func sorted(_ rows: [AppRanking.Row], by column: AppSortColumn, ascending: Bool) -> [AppRanking.Row] {
+        func compare(_ a: AppRanking.Row, _ b: AppRanking.Row) -> ComparisonResult {
+            switch column {
+            case .name: return a.name.localizedCaseInsensitiveCompare(b.name)
+            case .distance: return value(a.usage.points, b.usage.points)
+            case .clicks: return value(a.usage.clicks, b.usage.clicks)
+            case .keystrokes: return value(a.usage.keystrokes, b.usage.keystrokes)
+            }
+        }
+        return rows.sorted { a, b in
+            let order = compare(a, b)
+            if order == .orderedSame {
+                return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+            }
+            return ascending ? order == .orderedAscending : order == .orderedDescending
+        }
+    }
+
+    private static func value<T: Comparable>(_ a: T, _ b: T) -> ComparisonResult {
+        a < b ? .orderedAscending : (a > b ? .orderedDescending : .orderedSame)
+    }
+}
