@@ -86,13 +86,13 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// Runs on every mouse move, so it only sums a handful of cached totals.
     @objc private func updateTitle() {
         let sync = CloudSync.shared
-        let points = MenuBarSettings.titlePoints(
+        statusItem.button?.title = MenuBarSettings.title(
             showsAllMacs: MenuBarSettings.showsAllMacs,
+            marksAllMacs: MenuBarSettings.marksAllMacs,
             isSyncAvailable: sync.isAvailable,
-            thisMac: MetricsStore.shared.totalPoints,
-            allMacs: sync.allMacsPoints
+            thisMacPoints: MetricsStore.shared.totalPoints,
+            allMacsPoints: sync.allMacsPoints
         )
-        statusItem.button?.title = MetricsStore.distanceText(forPoints: points)
     }
 
     @objc private func openPreferences() {

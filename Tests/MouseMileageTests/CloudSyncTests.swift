@@ -144,14 +144,29 @@ final class DistanceTextTests: XCTestCase {
 }
 
 final class MenuBarTitleTests: XCTestCase {
-    func testShowsChosenTotalAndFallsBackWhenSyncIsOff() {
-        func points(_ allMacs: Bool, _ available: Bool) -> Double {
-            MenuBarSettings.titlePoints(showsAllMacs: allMacs, isSyncAvailable: available, thisMac: 10, allMacs: 25)
-        }
-        XCTAssertEqual(points(false, true), 10, "This Mac")
-        XCTAssertEqual(points(true, true), 25, "All Macs")
-        XCTAssertEqual(points(false, false), 10)
-        // Cached totals from the other Macs would go stale with sync off.
-        XCTAssertEqual(points(true, false), 10, "All Macs falls back to this Mac when iCloud Drive is off")
+    private let pointsPerMile = 72.0 * 12.0 * 5280
+    private var thisMac: Double { 10 * pointsPerMile }
+    private var allMacs: Double { 25 * pointsPerMile }
+
+    private func title(allMacs showsAll: Bool, marked: Bool, available: Bool) -> String {
+        MenuBarSettings.title(showsAllMacs: showsAll, marksAllMacs: marked, isSyncAvailable: available,
+                              thisMacPoints: thisMac, allMacsPoints: allMacs)
+    }
+
+    func testShowsChosenTotalWithOptionalMarker() {
+        let ten = MetricsStore.distanceText(forPoints: thisMac)
+        let twentyFive = MetricsStore.distanceText(forPoints: allMacs)
+
+        XCTAssertEqual(title(allMacs: false, marked: true, available: true), ten, "This Mac is never marked")
+        XCTAssertEqual(title(allMacs: true, marked: true, available: true), "Σ \(twentyFive)")
+        XCTAssertEqual(title(allMacs: true, marked: false, available: true), twentyFive)
+    }
+
+    /// With sync off the title falls back to this Mac — and must not carry the
+    /// marker, or it would label this Mac's own figure as the combined total.
+    func testFallsBackToThisMacUnmarkedWhenSyncIsOff() {
+        let ten = MetricsStore.distanceText(forPoints: thisMac)
+        XCTAssertEqual(title(allMacs: true, marked: true, available: false), ten)
+        XCTAssertEqual(title(allMacs: true, marked: false, available: false), ten)
     }
 }

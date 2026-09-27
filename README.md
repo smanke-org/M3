@@ -46,7 +46,10 @@ Drive, so each one can show **This Mac** and **All Macs** side by side. The
 dropdown shows both, and its charts combine every Mac. The menu bar title shows
 this Mac by default; Preferences › "Menu bar shows" switches it to All Macs
 (falling back to this Mac while iCloud Drive is off, rather than showing other
-Macs' totals that are no longer being kept current). Preferences also lists each
+Macs' totals that are no longer being kept current). An All Macs title is
+prefixed with Σ so it can't be mistaken for this Mac's figure; that marker can
+be turned off in Preferences, and never appears on the fallback. Preferences
+also lists each
 Mac with its mileage and when it last synced.
 
 `CloudSync.swift` does this with plain files, one per Mac:

@@ -120,6 +120,10 @@ struct PreferencesView: View {
                 .fixedSize()
             }
             .padding(.top, 4)
+            Toggle("Mark the All Macs total with \(MenuBarSettings.allMacsMarker)", isOn: $viewModel.menuBarMarksAllMacs)
+                .toggleStyle(.checkbox)
+                .disabled(!viewModel.menuBarShowsAllMacs)
+                .help("Prefixes the menu bar title with \(MenuBarSettings.allMacsMarker) while it shows all Macs, so it can't be mistaken for this Mac's mileage.")
             if viewModel.menuBarShowsAllMacs && !viewModel.isSyncAvailable {
                 Text("iCloud Drive is off, so the menu bar shows this Mac until it's back on.")
                     .font(.caption)

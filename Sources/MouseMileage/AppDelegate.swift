@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         UpdateSettings.registerDefaults()
+        MenuBarSettings.registerDefaults()
 
         statusItemController = StatusItemController()
 

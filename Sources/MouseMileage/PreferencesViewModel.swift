@@ -39,6 +39,9 @@ final class PreferencesViewModel: ObservableObject {
     @Published var menuBarShowsAllMacs: Bool {
         didSet { MenuBarSettings.showsAllMacs = menuBarShowsAllMacs }
     }
+    @Published var menuBarMarksAllMacs: Bool {
+        didSet { MenuBarSettings.marksAllMacs = menuBarMarksAllMacs }
+    }
     /// Keystrokes are only delivered to a global monitor when the app is
     /// trusted for Accessibility; without it they silently never arrive.
     @Published var isAccessibilityTrusted: Bool = AXIsProcessTrusted()
@@ -52,6 +55,7 @@ final class PreferencesViewModel: ObservableObject {
         launchAtLoginEnabled = LaunchAtLoginController.isEnabled
         checkForUpdatesAtLaunch = UpdateSettings.checkForUpdatesAtLaunch
         menuBarShowsAllMacs = MenuBarSettings.showsAllMacs
+        menuBarMarksAllMacs = MenuBarSettings.marksAllMacs
         refreshText()
 
         metricsObserver = NotificationCenter.default.addObserver(
@@ -128,6 +132,9 @@ final class PreferencesViewModel: ObservableObject {
         }
         if menuBarShowsAllMacs != MenuBarSettings.showsAllMacs {
             menuBarShowsAllMacs = MenuBarSettings.showsAllMacs
+        }
+        if menuBarMarksAllMacs != MenuBarSettings.marksAllMacs {
+            menuBarMarksAllMacs = MenuBarSettings.marksAllMacs
         }
     }
 
