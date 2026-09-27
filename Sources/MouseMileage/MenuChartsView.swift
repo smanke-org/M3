@@ -12,6 +12,7 @@ struct MenuChartsView: View {
             Text(viewModel.chartsScopeText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            TopAppsCard(viewModel: viewModel)
             ChartCard(title: "Today by Hour", buckets: viewModel.byHour, xAxisStyle: .hour)
             ChartCard(title: "By Day", buckets: viewModel.byDay, xAxisStyle: .day)
             ChartCard(title: "Year to Date", buckets: viewModel.yearToDate, xAxisStyle: .month)

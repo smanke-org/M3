@@ -13,6 +13,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusItemController = StatusItemController()
 
+        // Follow the focused app before events start arriving, so the first
+        // movement is credited to the right app rather than "unknown".
+        AppUsageStore.shared.start()
+
         eventMonitor.requestPermissionIfNeeded()
         eventMonitor.start()
 
@@ -35,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         MetricsStore.shared.saveIfNeeded()
         MileageHistoryStore.shared.saveIfNeeded()
+        AppUsageStore.shared.saveIfNeeded()
         CloudSync.shared.publishNow(synchronously: true)
         eventMonitor.stop()
     }

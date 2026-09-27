@@ -91,6 +91,28 @@ migration count twice. Resetting on the new Mac fixes it.
 real iCloud data. A debug build shares the installed app's device ID, so set it
 when running one alongside the installed app.
 
+## Mileage per app
+
+Mileage, clicks, and keystrokes are also credited to whichever app **has focus**
+at the time — so you can see how far you mouse in Photoshop versus Safari. That's
+the frontmost app, not the app under the cursor: moving across a background
+window still counts toward the app you're working in.
+
+- The menu dropdown's **Top Apps** card ranks the top five by mileage, with the
+  rest rolled into "N others", for **Today**, **7 Days**, or **All** time. The card
+  is a fixed height, because the menu's SwiftUI view is measured once when the
+  menu is built and a growing card would be clipped.
+- Preferences › **Apps** lists every app with its distance, clicks, and keystrokes.
+- The focused app is cached from `NSWorkspace` activation notifications, never
+  looked up per event, since crediting happens on every mouse move. No extra
+  permission is needed.
+- Apps are keyed by bundle ID, so the same app combines across Macs, with each
+  Mac's days lined up on the local calendar by the same rule as the charts.
+- Per-app data is included in each Mac's iCloud Drive file — which apps you use,
+  in your own iCloud Drive. Files from before this existed still read fine.
+- Resets clear the matching per-app metric too: Reset Mileage clears per-app
+  distance, Reset Clicks per-app clicks, and so on.
+
 ## Auto-update
 
 `UpdateController.swift` checks `https://api.github.com/repos/smanke/M3/releases/latest`,

@@ -61,24 +61,28 @@ final class MetricsStore {
         totalPoints += points
         dirty = true
         MileageHistoryStore.shared.recordMovement(points: points)
+        AppUsageStore.shared.record(points: points)
         notifyChanged()
     }
 
     func incrementKeystrokes() {
         keystrokes += 1
         dirty = true
+        AppUsageStore.shared.recordKeystroke()
         notifyChanged()
     }
 
     func incrementLeftClicks() {
         leftClicks += 1
         dirty = true
+        AppUsageStore.shared.recordClick()
         notifyChanged()
     }
 
     func incrementRightClicks() {
         rightClicks += 1
         dirty = true
+        AppUsageStore.shared.recordClick()
         notifyChanged()
     }
 
@@ -87,6 +91,7 @@ final class MetricsStore {
         dirty = true
         saveIfNeeded()
         MileageHistoryStore.shared.resetHistory()
+        AppUsageStore.shared.reset(points: true, clicks: false, keystrokes: false)
         didReset()
     }
 
@@ -94,6 +99,7 @@ final class MetricsStore {
         keystrokes = 0
         dirty = true
         saveIfNeeded()
+        AppUsageStore.shared.reset(points: false, clicks: false, keystrokes: true)
         didReset()
     }
 
@@ -102,6 +108,7 @@ final class MetricsStore {
         rightClicks = 0
         dirty = true
         saveIfNeeded()
+        AppUsageStore.shared.reset(points: false, clicks: true, keystrokes: false)
         didReset()
     }
 
@@ -115,6 +122,7 @@ final class MetricsStore {
         dirty = true
         saveIfNeeded()
         MileageHistoryStore.shared.resetHistory()
+        AppUsageStore.shared.reset(points: true, clicks: true, keystrokes: true)
         didReset()
     }
 

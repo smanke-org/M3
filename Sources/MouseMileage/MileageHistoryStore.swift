@@ -103,20 +103,27 @@ final class MileageHistoryStore {
     /// would split one day into two. Each bucket is instead re-keyed to the local
     /// hour or day containing its midpoint — the local period it overlaps most.
     static func merge(_ sets: [[Bucket]], unit: Calendar.Component, calendar: Calendar) -> [Bucket] {
-        let halfSpan: TimeInterval = unit == .hour ? 30 * 60 : 12 * 3600
         var byStart: [Date: Double] = [:]
         for set in sets {
             for bucket in set {
-                let midpoint = bucket.start.addingTimeInterval(halfSpan)
-                let key = unit == .hour
-                    ? (calendar.dateInterval(of: .hour, for: midpoint)?.start ?? bucket.start)
-                    : calendar.startOfDay(for: midpoint)
+                let key = localPeriodStart(for: bucket.start, unit: unit, calendar: calendar)
                 byStart[key, default: 0] += bucket.points
             }
         }
         return byStart
             .map { Bucket(start: $0.key, points: $0.value) }
             .sorted { $0.start < $1.start }
+    }
+
+    /// The local hour or day that a period starting at `start` (on any Mac's
+    /// calendar) overlaps most — the one containing its midpoint. Shared with the
+    /// per-app totals so both follow the same time-zone rule.
+    static func localPeriodStart(for start: Date, unit: Calendar.Component, calendar: Calendar) -> Date {
+        let halfSpan: TimeInterval = unit == .hour ? 30 * 60 : 12 * 3600
+        let midpoint = start.addingTimeInterval(halfSpan)
+        return unit == .hour
+            ? (calendar.dateInterval(of: .hour, for: midpoint)?.start ?? start)
+            : calendar.startOfDay(for: midpoint)
     }
 
     /// `merge` on this store's own calendar.

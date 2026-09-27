@@ -12,8 +12,26 @@ final class HistoryViewModel: ObservableObject {
 
     @Published var thisMacText = ""
     @Published var allMacsText = ""
-    /// Caption naming whose data the charts show.
+    /// Caption naming whose data the Top Apps card and charts show.
     @Published var chartsScopeText = ""
+
+    /// The top five apps for the chosen range, and everything else rolled up.
+    @Published var topApps: [AppRanking.Row] = []
+    @Published var otherAppsCount = 0
+    @Published var otherAppsUsage = AppUsage()
+    /// Remembered across launches.
+    @Published var appRange: AppUsageRange = HistoryViewModel.savedAppRange {
+        didSet {
+            UserDefaults.standard.set(appRange.rawValue, forKey: Self.appRangeKey)
+            refreshApps()
+        }
+    }
+
+    static let topAppCount = 5
+    private static let appRangeKey = "topApps.range"
+    private static var savedAppRange: AppUsageRange {
+        UserDefaults.standard.string(forKey: appRangeKey).flatMap(AppUsageRange.init(rawValue:)) ?? .today
+    }
 
     private var syncObserver: NSObjectProtocol?
 
@@ -35,7 +53,7 @@ final class HistoryViewModel: ObservableObject {
     func refresh() {
         let history = MileageHistoryStore.shared
         let sync = CloudSync.shared
-        let remote = Array(sync.remoteRecords.values)
+        let remote = sync.activeRemoteRecords
 
         let hourly = history.merge([history.hourlyBuckets] + remote.map(\.hourly), unit: .hour)
         let daily = history.merge([history.dailyBuckets] + remote.map(\.daily), unit: .day)
@@ -47,12 +65,24 @@ final class HistoryViewModel: ObservableObject {
 
         if !sync.isAvailable {
             allMacsText = "iCloud Drive is off"
-            chartsScopeText = "Charts: this Mac only (iCloud Drive is off)"
+            chartsScopeText = "Apps and charts: this Mac only (iCloud Drive is off)"
         } else {
             let count = sync.macCount
             let macs = count == 1 ? "1 Mac" : "\(count) Macs"
             allMacsText = "\(MetricsStore.distanceText(forPoints: sync.allMacsPoints)) · \(macs)"
-            chartsScopeText = count == 1 ? "Charts: this Mac (no other Macs synced yet)" : "Charts: all \(macs) combined"
+            chartsScopeText = count == 1 ? "Apps and charts: this Mac (no other Macs synced yet)" : "Apps and charts: all \(macs) combined"
         }
+
+        refreshApps()
+    }
+
+    func refreshApps() {
+        let store = AppUsageStore.shared
+        let ranking = AppUsageStore.ranking(range: appRange, snapshots: CloudSync.shared.appSnapshots,
+                                            calendar: store.localCalendar)
+        topApps = Array(ranking.rows.prefix(Self.topAppCount))
+        let rest = ranking.rows.dropFirst(Self.topAppCount)
+        otherAppsCount = rest.count
+        otherAppsUsage = rest.reduce(into: AppUsage()) { $0.add($1.usage) }
     }
 }

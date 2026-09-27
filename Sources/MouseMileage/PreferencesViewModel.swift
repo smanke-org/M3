@@ -19,6 +19,15 @@ final class PreferencesViewModel: ObservableObject {
     @Published var allMacsText: String = ""
     @Published var isSyncAvailable = false
 
+    /// Every app, ranked by mileage. The full list behind the menu's Top Apps card.
+    @Published var appRows: [AppRanking.Row] = []
+    @Published var appRange: AppUsageRange = .allTime {
+        didSet { refreshApps() }
+    }
+    /// `refreshText` runs on every mouse move; ranking every app that often is
+    /// wasted work, so the list refreshes at most this often from that path.
+    private var lastAppsRefresh = Date.distantPast
+
     private static let syncedFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
@@ -95,6 +104,15 @@ final class PreferencesViewModel: ObservableObject {
         trackingSinceText = "\(Self.startedFormatter.string(from: started)) (\(span))"
 
         refreshMacs()
+        if Date().timeIntervalSince(lastAppsRefresh) > 2 {
+            refreshApps()
+        }
+    }
+
+    func refreshApps() {
+        lastAppsRefresh = Date()
+        appRows = AppUsageStore.ranking(range: appRange, snapshots: CloudSync.shared.appSnapshots,
+                                        calendar: AppUsageStore.shared.localCalendar).rows
     }
 
     private func refreshMacs() {
@@ -127,6 +145,7 @@ final class PreferencesViewModel: ObservableObject {
         launchAtLoginEnabled = LaunchAtLoginController.isEnabled
         isAccessibilityTrusted = AXIsProcessTrusted()
         thisMacName = DeviceIdentity.deviceName
+        refreshApps()
         if checkForUpdatesAtLaunch != UpdateSettings.checkForUpdatesAtLaunch {
             checkForUpdatesAtLaunch = UpdateSettings.checkForUpdatesAtLaunch
         }

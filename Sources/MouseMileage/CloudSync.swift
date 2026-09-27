@@ -54,6 +54,17 @@ struct DeviceRecord: Codable, Equatable {
     var hourly: [MileageHistoryStore.Bucket]
     var daily: [MileageHistoryStore.Bucket]
 
+    // Per-app usage, added in 1.14.2. Optional so files written by 1.14.0–1.14.1
+    // still decode; those versions ignore these keys when reading newer files.
+    var apps: [String: AppUsage]? = nil
+    var appDays: [AppDay]? = nil
+    var appNames: [String: String]? = nil
+
+    /// This Mac's per-app data in the form the ranking takes.
+    var appSnapshot: AppUsageSnapshot {
+        AppUsageSnapshot(allTime: apps ?? [:], days: appDays ?? [], names: appNames ?? [:])
+    }
+
     /// Everything except the timestamp, to tell whether anything actually changed.
     var content: DeviceRecord {
         var copy = self
@@ -160,6 +171,18 @@ final class CloudSync {
     /// This Mac plus every other Mac that has synced.
     var macCount: Int { remoteRecords.count + 1 }
 
+    /// The other Macs' records to combine into charts and app rankings. Empty
+    /// while iCloud Drive is off: the cached records are still held then, but
+    /// nothing is keeping them current, so showing them would mislead.
+    var activeRemoteRecords: [DeviceRecord] {
+        isAvailable ? Array(remoteRecords.values) : []
+    }
+
+    /// This Mac's per-app data first (its app names win), then the other Macs'.
+    var appSnapshots: [AppUsageSnapshot] {
+        [AppUsageStore.shared.snapshot] + activeRemoteRecords.map(\.appSnapshot)
+    }
+
     // MARK: - Publishing this Mac's totals
 
     /// Writes this Mac's file now. `synchronously` waits (briefly) for the write,
@@ -188,7 +211,10 @@ final class CloudSync {
             leftClicks: metrics.leftClicks,
             rightClicks: metrics.rightClicks,
             hourly: history.hourlyBuckets,
-            daily: history.dailyBuckets
+            daily: history.dailyBuckets,
+            apps: AppUsageStore.shared.allTime,
+            appDays: AppUsageStore.shared.days,
+            appNames: AppUsageStore.shared.names
         )
     }
 

@@ -13,13 +13,15 @@ struct PreferencesView: View {
             Divider()
             allMacsSection
             Divider()
+            appsSection
+            Divider()
             settingsSection
             Divider()
             resetSection
             footer
         }
         .padding(20)
-        .frame(width: 360)
+        .frame(width: 400)
     }
 
     private var statsSection: some View {
@@ -31,6 +33,65 @@ struct PreferencesView: View {
                 .foregroundStyle(.secondary)
         }
         .font(.system(size: 13))
+    }
+
+    /// Every app's mileage, clicks, and keystrokes — the full list behind the
+    /// menu's Top Apps card. Capped in height so the window stays a sensible size.
+    private var appsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Apps")
+                    .font(.system(size: 13, weight: .semibold))
+                Spacer()
+                Picker("Range", selection: $viewModel.appRange) {
+                    ForEach(AppUsageRange.allCases) { Text($0.title).tag($0) }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .fixedSize()
+            }
+
+            if viewModel.appRows.isEmpty {
+                Text("No app data for this range yet.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                HStack(spacing: 8) {
+                    Text("App").frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Distance").frame(width: 70, alignment: .trailing)
+                    Text("Clicks").frame(width: 52, alignment: .trailing)
+                    Text("Keys").frame(width: 60, alignment: .trailing)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 5) {
+                        ForEach(viewModel.appRows) { app in
+                            HStack(spacing: 8) {
+                                HStack(spacing: 6) {
+                                    Image(nsImage: AppIcons.icon(for: app.id))
+                                        .resizable()
+                                        .frame(width: 16, height: 16)
+                                    Text(app.name).lineLimit(1).truncationMode(.tail)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .help(app.name)
+                                Text(MetricsStore.distanceText(forPoints: app.usage.points))
+                                    .frame(width: 70, alignment: .trailing)
+                                Text(MetricsFormatter.count(app.usage.clicks))
+                                    .frame(width: 52, alignment: .trailing)
+                                Text(MetricsFormatter.count(app.usage.keystrokes))
+                                    .frame(width: 60, alignment: .trailing)
+                            }
+                            .font(.system(size: 12))
+                            .monospacedDigit()
+                        }
+                    }
+                }
+                .frame(maxHeight: 220)
+            }
+        }
     }
 
     /// Where the All Macs total comes from, so it can be explained and a Mac that
