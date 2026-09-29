@@ -215,10 +215,5 @@ final class HIDPPTests: XCTestCase {
     func testDisplayNameDropsMacEditionSuffix() {
         XCTAssertEqual(LogitechMouse(deviceIndex: 0xFF, product: "MX Master 4 M").displayName, "MX Master 4")
         XCTAssertEqual(LogitechMouse(deviceIndex: 1, product: "M720 Triathlon").displayName, "M720 Triathlon")
-        var mouse = LogitechMouse(deviceIndex: 0xFF, product: "MX Master 4 M")
-        mouse.unitID = "a72cb756"
-        XCTAssertEqual(mouse.key, "logi:unit-a72cb756")
-        mouse.serial = "2603APHHBR48"
-        XCTAssertEqual(mouse.key, "logi:2603APHHBR48")
     }
 }

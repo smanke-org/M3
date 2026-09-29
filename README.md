@@ -152,6 +152,15 @@ nothing else, and theirs don't touch it.
   out from all of them together.
 - The menu gets a **Mileage per Charge** card, and Preferences › **Battery** has
   the chart and the list of charges.
+- **Telling identical mice apart:** click the pencil next to a mouse's name in
+  Preferences › Battery to rename it. The name syncs to all your Macs. Until
+  it's renamed, a mouse that shares its model name with another gets the end
+  of its serial number, as in "MX Master 4 · BR48". The serial is printed
+  under the mouse.
+- A Logitech mouse is keyed on its unit ID, which is always read when it
+  connects. Versions 1.15.0–1.15.4 used the serial number when that separate
+  read succeeded, so one failed read split a mouse in two. The old key is
+  kept as an alias, so those histories and older Macs' files merge back in.
 
 ## Auto-update
 

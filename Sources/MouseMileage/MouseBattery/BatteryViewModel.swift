@@ -8,7 +8,12 @@ final class BatteryViewModel: ObservableObject {
         /// Nil when the mouse isn't connected to this Mac right now.
         var connected: MouseBatteryMonitor.ConnectedMouse?
 
+        /// The nickname, or the model with an ID suffix when needed to tell it
+        /// from an identical mouse. Set by `refresh`, which sees every mouse.
+        var label = ""
+
         var id: String { history.key }
+        /// The model name.
         var name: String { connected?.name ?? history.name }
         /// Live when connected, otherwise the last reading from any Mac.
         var percent: Int? { connected?.battery?.percent ?? history.latest?.percent }
@@ -62,9 +67,36 @@ final class BatteryViewModel: ObservableObject {
         isEnabled = monitor.isEnabled
         status = monitor.status
         let histories = CloudSync.shared.mouseHistories
-        mice = histories
-            .map { Mouse(history: $0, connected: monitor.connected[$0.key]) }
-            .sorted { ($0.connected != nil ? 0 : 1, $0.name) < ($1.connected != nil ? 0 : 1, $1.name) }
+        var mice = histories.map { Mouse(history: $0, connected: monitor.connected[$0.key]) }
+        let labels = Self.labels(for: mice.map { ($0.id, $0.name, $0.history.nickname, $0.history.idSuffix) })
+        for index in mice.indices { mice[index].label = labels[mice[index].id] ?? mice[index].name }
+        self.mice = mice.sorted { ($0.connected != nil ? 0 : 1, $0.label) < ($1.connected != nil ? 0 : 1, $1.label) }
+    }
+
+    /// Nickname if set; otherwise the model, plus " · ABCD" when another
+    /// unnamed mouse shares that model name.
+    static func labels(for mice: [(key: String, model: String, nickname: String?, suffix: String)]) -> [String: String] {
+        let unnamed = mice.filter { $0.nickname == nil }
+        let modelCounts = Dictionary(grouping: unnamed, by: \.model).mapValues(\.count)
+        var labels: [String: String] = [:]
+        for mouse in mice {
+            if let nickname = mouse.nickname {
+                labels[mouse.key] = nickname
+            } else if (modelCounts[mouse.model] ?? 0) > 1 {
+                labels[mouse.key] = "\(mouse.model) · \(mouse.suffix)"
+            } else {
+                labels[mouse.key] = mouse.model
+            }
+        }
+        return labels
+    }
+
+    /// Names a mouse (or with an empty name, goes back to its model name),
+    /// on every Mac.
+    func rename(_ mouse: Mouse, to nickname: String?) {
+        ChargeStore.shared.rename(mouse: mouse.id, model: mouse.name, to: nickname)
+        CloudSync.shared.publishNow()
+        refresh()
     }
 
     func setEnabled(_ enabled: Bool) {

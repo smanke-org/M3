@@ -219,6 +219,8 @@ final class MouseBatteryMonitor {
         let transport = LogitechTransport(device: device, isReceiver: isReceiver)
         transport.onBattery = { [weak self] mouse, battery in
             self?.setMotionOwner(owner, mouse.key)
+            ChargeStore.shared.identify(mouse: mouse.key, name: mouse.displayName, serial: mouse.serial,
+                                        aliases: mouse.legacyKey.map { [$0] } ?? [])
             self?.update(key: mouse.key, name: mouse.displayName, battery: battery)
         }
         transports[owner] = transport

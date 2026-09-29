@@ -59,7 +59,20 @@ final class LogitechTransport {
 
     /// Re-reads every known mouse's battery.
     func poll() {
-        mice.values.forEach(readBattery)
+        for mouse in mice.values {
+            if mouse.hasSerial, mouse.serial == nil { readSerial(mouse) }
+            readBattery(mouse)
+        }
+    }
+
+    /// A serial number that didn't come back when the mouse connected is
+    /// asked for again, so its earlier key can still be merged in.
+    private func readSerial(_ mouse: LogitechMouse) {
+        guard let index = mouse.featureIndex[.deviceInformation] else { return }
+        send(mouse.deviceIndex, index, function: 2) { [weak self] params in
+            guard let serial = params.flatMap(HIDPP.serialNumber) else { return }
+            self?.mice[mouse.deviceIndex]?.serial = serial
+        }
     }
 
     // MARK: - Identification
@@ -101,6 +114,7 @@ final class LogitechTransport {
             send(deviceIndex, infoIndex, function: 0) { params in
                 guard let info = params.flatMap(HIDPP.deviceInfo) else { return }
                 mouse.unitID = info.unitID
+                mouse.hasSerial = info.hasSerial
                 guard info.hasSerial else { return readName() }
                 self.send(deviceIndex, infoIndex, function: 2) { params in
                     mouse.serial = params.flatMap(HIDPP.serialNumber)
@@ -235,13 +249,17 @@ struct LogitechMouse {
 
     /// Stable across Macs and Easy-Switch channels, each of which gives the
     /// mouse a different Bluetooth address.
+    var hasSerial = false
+
+    /// The unit ID, which identification always reads. Keying on the serial
+    /// number instead (1.15.0–1.15.4) split a mouse in two whenever that
+    /// separate request failed.
     var key: String {
-        if let serial { return "logi:\(serial)" }
-        return "logi:unit-\(unitID ?? "\(product)-\(deviceIndex)")"
+        "logi:unit-\(unitID ?? "\(product)-\(deviceIndex)")"
     }
 
-    /// "MX Master 4 M" → "MX Master 4": the trailing " M" marks the Mac edition.
-    var displayName: String {
-        product.hasSuffix(" M") ? String(product.dropLast(2)) : product
-    }
+    /// The key 1.15.0–1.15.4 used when the serial number was read.
+    var legacyKey: String? { serial.map { "logi:\($0)" } }
+
+    var displayName: String { MouseName.model(product) }
 }

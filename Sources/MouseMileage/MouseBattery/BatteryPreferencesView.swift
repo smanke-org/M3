@@ -29,12 +29,12 @@ struct BatteryPreferencesView: View {
                             get: { viewModel.selected?.id ?? "" },
                             set: { viewModel.selectedKey = $0 }
                         )) {
-                            ForEach(viewModel.mice) { Text($0.name).tag($0.id) }
+                            ForEach(viewModel.mice) { Text($0.label).tag($0.id) }
                         }
                         .fixedSize()
                     }
                     if let mouse = viewModel.selected {
-                        MouseChargesView(mouse: mouse, reset: { confirmReset(mouse) })
+                        MouseChargesView(mouse: mouse, reset: { confirmReset(mouse) }, rename: { promptRename(mouse) })
                     }
                 }
                 Divider()
@@ -90,9 +90,30 @@ struct BatteryPreferencesView: View {
         )
     }
 
+    private func promptRename(_ mouse: BatteryViewModel.Mouse) {
+        let alert = NSAlert()
+        alert.messageText = "Rename \(mouse.label)"
+        var detail = "Shown instead of \"\(mouse.name)\" on all your Macs."
+        if let serial = mouse.history.serial { detail += " Serial number \(serial), printed under the mouse." }
+        alert.informativeText = detail
+        let field = NSTextField(string: mouse.history.nickname ?? "")
+        field.placeholderString = mouse.name
+        field.frame = NSRect(x: 0, y: 0, width: 240, height: 24)
+        alert.accessoryView = field
+        alert.addButton(withTitle: "Rename")
+        alert.addButton(withTitle: "Cancel")
+        if mouse.history.nickname != nil { alert.addButton(withTitle: "Use Model Name") }
+        alert.window.initialFirstResponder = field
+        switch alert.runModal() {
+        case .alertFirstButtonReturn: viewModel.rename(mouse, to: field.stringValue)
+        case .alertThirdButtonReturn: viewModel.rename(mouse, to: nil)
+        default: break
+        }
+    }
+
     private func confirmReset(_ mouse: BatteryViewModel.Mouse) {
         let alert = NSAlert()
-        alert.messageText = "Reset charge history for \(mouse.name)?"
+        alert.messageText = "Reset charge history for \(mouse.label)?"
         alert.informativeText = "Clears this mouse's charges on all your Macs. Your other mileage isn't affected."
         alert.addButton(withTitle: "Reset")
         alert.addButton(withTitle: "Cancel")
@@ -107,6 +128,7 @@ struct BatteryPreferencesView: View {
 private struct MouseChargesView: View {
     let mouse: BatteryViewModel.Mouse
     let reset: () -> Void
+    let rename: () -> Void
 
     private struct Bar: Identifiable {
         let id: Date
@@ -146,7 +168,12 @@ private struct MouseChargesView: View {
     private var summary: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(mouse.name).font(.system(size: 13, weight: .semibold))
+                Text(mouse.label).font(.system(size: 13, weight: .semibold))
+                Button(action: rename) {
+                    Image(systemName: "pencil")
+                }
+                .buttonStyle(.borderless)
+                .help("Rename this mouse")
                 Spacer()
                 Image(systemName: BatteryViewModel.batterySymbol(percent: mouse.percent, isCharging: mouse.isCharging))
                 Text(mouse.percent.map { "\($0)%\(mouse.isCharging ? ", charging" : "")" } ?? "—")

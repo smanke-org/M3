@@ -11,7 +11,7 @@ struct BatterySample: Codable, Equatable {
 /// and its battery readings. Charges are derived from these, not stored, so
 /// several Macs' records for the same mouse combine by simple union.
 struct MouseLog: Codable, Equatable {
-    /// "logi:<serial>" or "apple:<serial>": the same on every Mac, and on
+    /// "logi:unit-<unit ID>" or "apple:<serial>": the same on every Mac, and on
     /// every Easy-Switch channel.
     var key: String
     var name: String
@@ -20,6 +20,37 @@ struct MouseLog: Codable, Equatable {
     /// Set by Reset Charge History, and synced, so data held by other Macs
     /// from before the reset doesn't bring the old charges back.
     var resetAt: Date? = nil
+
+    // Added in 1.15.5; optional so earlier files decode.
+    /// Earlier keys for this mouse. 1.15.0–1.15.4 keyed a Logitech mouse by
+    /// its serial number when that read succeeded, so a failed read split one
+    /// mouse into two. Logs under these keys belong to this mouse.
+    var aliases: [String]? = nil
+    var serial: String? = nil
+    /// The user's name for the mouse. The most recently set one wins across Macs.
+    var nickname: String? = nil
+    var nicknameUpdatedAt: Date? = nil
+}
+
+/// Model names as the mice report them, trimmed to what's worth showing.
+enum MouseName {
+    /// "MX Master 4 M" → "MX Master 4" (the " M" marks the Mac edition), and
+    /// "Wireless Mouse MX Master 2S" → "MX Master 2S".
+    static func model(_ product: String) -> String {
+        var name = product.trimmingCharacters(in: .whitespaces)
+        if name.hasPrefix("Wireless Mouse "), name.count > "Wireless Mouse ".count {
+            name = String(name.dropFirst("Wireless Mouse ".count))
+        }
+        if name.hasSuffix(" M") { name = String(name.dropLast(2)) }
+        return name
+    }
+
+    /// A short ID to tell identical models apart: the end of the serial
+    /// number (printed on the mouse's label), or of its other identifier.
+    static func idSuffix(key: String, serial: String?) -> String {
+        let source = serial ?? key.split(separator: ":").last.map { String($0.split(separator: "-").last ?? $0) } ?? key
+        return String(source.suffix(4)).uppercased()
+    }
 }
 
 /// Travel on one battery charge.
@@ -51,9 +82,14 @@ struct Charge: Equatable, Identifiable {
 /// One mouse's history combined from every Mac.
 struct MouseChargeHistory: Equatable, Identifiable {
     var key: String
+    /// The model name.
     var name: String
     var charges: [Charge]
     var latest: BatterySample?
+    var serial: String? = nil
+    var nickname: String? = nil
+
+    var idSuffix: String { MouseName.idSuffix(key: key, serial: serial) }
 
     var id: String { key }
     var current: Charge? { charges.last.flatMap { $0.isCurrent ? $0 : nil } }
@@ -135,6 +171,69 @@ final class ChargeStore {
         NotificationCenter.default.post(name: Self.didUpdateNotification, object: self)
     }
 
+    /// Records who this mouse is, and folds in any log kept under an earlier
+    /// key for it (see `MouseLog.aliases`), so its history is one again.
+    func identify(mouse key: String, name: String, serial: String?, aliases: [String]) {
+        var log = logs[key] ?? MouseLog(key: key, name: name)
+        let before = log
+        log.name = name
+        if let serial { log.serial = serial }
+        for alias in aliases where alias != key {
+            if let old = logs.removeValue(forKey: alias) {
+                log = Self.merged(old, into: log)
+            }
+            if !(log.aliases ?? []).contains(alias) {
+                log.aliases = (log.aliases ?? []) + [alias]
+            }
+        }
+        guard log != before || logs[key] == nil else { return }
+        logs[key] = log
+        dirty = true
+        saveIfNeeded()
+        NotificationCenter.default.post(name: Self.didUpdateNotification, object: self)
+    }
+
+    /// Names a mouse, or with nil/empty goes back to its model name. Works
+    /// for a mouse that isn't connected to this Mac too: its log here then
+    /// carries only the name, which syncs to the others.
+    func rename(mouse key: String, model: String, to nickname: String?, at date: Date = Date()) {
+        var log = logs[key] ?? MouseLog(key: key, name: model)
+        let trimmed = nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
+        log.nickname = (trimmed?.isEmpty ?? true) ? nil : trimmed
+        log.nicknameUpdatedAt = date
+        logs[key] = log
+        dirty = true
+        saveIfNeeded()
+        NotificationCenter.default.post(name: Self.didUpdateNotification, object: self)
+    }
+
+    /// One mouse's two logs as one: movement summed by hour, readings merged
+    /// in time order, the later reset and the newer nickname kept.
+    static func merged(_ other: MouseLog, into log: MouseLog) -> MouseLog {
+        var result = log
+        var byHour: [Date: Double] = [:]
+        for bucket in log.movement + other.movement { byHour[bucket.start, default: 0] += bucket.points }
+        result.movement = byHour.map { MileageHistoryStore.Bucket(start: $0.key, points: $0.value) }.sorted { $0.start < $1.start }
+
+        var samples: [BatterySample] = []
+        for sample in (log.samples + other.samples).sorted(by: { $0.date < $1.date }) {
+            // Kept only when it differs from the reading before, as when recorded.
+            if let last = samples.last, last.percent == sample.percent, last.isCharging == sample.isCharging { continue }
+            samples.append(sample)
+        }
+        result.samples = samples
+
+        result.resetAt = [log.resetAt, other.resetAt].compactMap { $0 }.max()
+        result.serial = log.serial ?? other.serial
+        if (other.nicknameUpdatedAt ?? .distantPast) > (log.nicknameUpdatedAt ?? .distantPast) {
+            result.nickname = other.nickname
+            result.nicknameUpdatedAt = other.nicknameUpdatedAt
+        }
+        let aliases = Set((log.aliases ?? []) + (other.aliases ?? []) + [other.key]).subtracting([log.key])
+        result.aliases = aliases.isEmpty ? nil : aliases.sorted()
+        return result
+    }
+
     /// Forgets this mouse's charges on every Mac.
     func resetHistory(mouse key: String, at date: Date = Date()) {
         guard var log = logs[key] else { return }
@@ -165,16 +264,51 @@ final class ChargeStore {
 
     /// Combines each mouse's logs from every Mac (this Mac's first, so its
     /// name for the mouse wins) into its charge history.
+    ///
+    /// Logs are grouped by key and by `aliases`, so a Mac still on 1.15.4,
+    /// publishing a Logitech mouse under its serial-number key, lands in the
+    /// same history as soon as any Mac has recorded that alias.
     static func histories(from logs: [MouseLog]) -> [MouseChargeHistory] {
-        let byKey = Dictionary(grouping: logs, by: \.key)
-        return byKey.values.compactMap { group -> MouseChargeHistory? in
-            guard let first = group.first else { return nil }
+        // Union-find over keys, joined by aliases.
+        var parent: [String: String] = [:]
+        func root(_ key: String) -> String {
+            var key = key
+            while let next = parent[key], next != key { key = next }
+            return key
+        }
+        func join(_ a: String, _ b: String) {
+            let (ra, rb) = (root(a), root(b))
+            if ra != rb { parent[rb] = ra }
+        }
+        for log in logs {
+            parent[log.key] = parent[log.key] ?? log.key
+            for alias in log.aliases ?? [] {
+                parent[alias] = parent[alias] ?? alias
+                join(log.key, alias)
+            }
+        }
+
+        var groups: [String: [MouseLog]] = [:]
+        var order: [String] = []
+        for log in logs {
+            let group = root(log.key)
+            if groups[group] == nil { order.append(group) }
+            groups[group, default: []].append(log)
+        }
+
+        return order.compactMap { id -> MouseChargeHistory? in
+            guard let group = groups[id], let first = group.first else { return nil }
+            // The current key is the one that lists the others as aliases.
+            let key = group.first { !($0.aliases ?? []).isEmpty }?.key ?? first.key
             let resetAt = group.compactMap(\.resetAt).max() ?? .distantPast
             let samples = group.flatMap(\.samples).filter { $0.date >= resetAt }.sorted { $0.date < $1.date }
             let movement = group.flatMap(\.movement).filter { $0.start.addingTimeInterval(3600) > resetAt }
-            return MouseChargeHistory(key: first.key, name: first.name,
+            let named = group.filter { $0.nicknameUpdatedAt != nil }.max { $0.nicknameUpdatedAt! < $1.nicknameUpdatedAt! }
+            return MouseChargeHistory(key: key, name: MouseName.model(first.name),
                                       charges: charges(samples: samples, movement: movement),
-                                      latest: samples.last)
+                                      latest: samples.last,
+                                      serial: group.lazy.compactMap(\.serial).first,
+                                      nickname: named?.nickname)
         }
         .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }

@@ -51,7 +51,7 @@ struct BatteryCard: View {
             HStack(spacing: 6) {
                 Image(systemName: "computermouse")
                     .frame(width: 16)
-                Text(mouse.name).lineLimit(1)
+                Text(mouse.label).lineLimit(1)
                 Spacer()
                 Image(systemName: BatteryViewModel.batterySymbol(percent: mouse.percent, isCharging: mouse.isCharging))
                     .foregroundStyle(.secondary)
