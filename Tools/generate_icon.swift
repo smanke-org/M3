@@ -68,7 +68,7 @@ ctx.restoreGState()
 func draw(_ string: String, size: CGFloat, at point: CGPoint) {
     let attributes: [NSAttributedString.Key: Any] = [
         .font: NSFont.systemFont(ofSize: size, weight: .bold),
-        .foregroundColor: NSColor.white,
+        .foregroundColor: NSColor.black,
     ]
     NSAttributedString(string: string, attributes: attributes).draw(at: point)
 }
