@@ -36,9 +36,14 @@ final class MouseBatteryMonitor {
 
     private var hidppManager: IOHIDManager?
     private var motionManager: IOHIDManager?
-    private var transports: [UInt64: LogitechTransport] = [:]
-    /// Magic Mice by the device's owner ID, for polling and removal.
-    private var magicMice: [UInt64: (device: IOHIDDevice, key: String)] = [:]
+    /// By registry entry, which is unique to each connection. (Keyed by location
+    /// ID before 1.15.8: a reconnecting mouse keeps its location ID, so a new
+    /// connection reported before the old one's removal was ignored, and the
+    /// removal then dropped the mouse altogether.)
+    private var transports: [UInt64: (transport: LogitechTransport, owner: UInt64)] = [:]
+    /// Magic Mice by registry entry, for polling and removal.
+    private var magicMice: [UInt64: (device: IOHIDDevice, key: String, owner: UInt64)] = [:]
+    private var wakeObserver: NSObjectProtocol?
     /// Which mouse a motion report's device belongs to. A Bluetooth mouse's
     /// motion and HID++ share one device; a receiver's mouse interface and its
     /// HID++ interface share a location ID.
@@ -162,6 +167,14 @@ final class MouseBatteryMonitor {
         pollTimer = Timer.scheduledTimer(withTimeInterval: Self.pollInterval, repeats: true) { [weak self] _ in
             self?.poll()
         }
+        // Bluetooth mice reconnect after sleep, and may not answer at first.
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.note("Mac woke")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { self?.poll() }
+        }
+        note("started")
         setStatus(.running)
     }
 
@@ -170,7 +183,9 @@ final class MouseBatteryMonitor {
         permissionTimer = nil
         pollTimer?.invalidate()
         pollTimer = nil
-        transports.values.forEach { $0.stop() }
+        if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }
+        wakeObserver = nil
+        transports.values.forEach { $0.transport.stop() }
         transports.removeAll()
         magicMice.removeAll()
         motionOwners.removeAll()
@@ -190,8 +205,8 @@ final class MouseBatteryMonitor {
     }
 
     private func poll() {
-        transports.values.forEach { $0.poll() }
-        for (_, mouse) in magicMice { readMagicMouse(mouse.device, key: mouse.key) }
+        transports.values.forEach { $0.transport.poll() }
+        for mouse in magicMice.values { readMagicMouse(mouse.device, key: mouse.key) }
     }
 
     /// Location ID where there is one (shared by a receiver's interfaces),
@@ -205,14 +220,22 @@ final class MouseBatteryMonitor {
         return id
     }
 
+    private static func registryID(_ device: IOHIDDevice) -> UInt64 {
+        var id: UInt64 = 0
+        IORegistryEntryGetRegistryEntryID(IOHIDDeviceGetService(device), &id)
+        return id
+    }
+
     private static func string(_ device: IOHIDDevice, _ key: String) -> String? {
         IOHIDDeviceGetProperty(device, key as CFString) as? String
     }
 
     private func addLogitech(_ device: IOHIDDevice) {
+        let id = Self.registryID(device)
+        guard transports[id] == nil else { return }
         let owner = Self.ownerID(device)
-        guard transports[owner] == nil else { return }
         let product = Self.string(device, kIOHIDProductKey) ?? ""
+        note("connected: \(product)")
         // Bolt and Unifying receivers are named "USB Receiver" / "Unifying Receiver".
         // A wired Logitech mouse also uses page 0xFF00, but answers as itself.
         let isReceiver = product.localizedCaseInsensitiveContains("receiver")
@@ -223,18 +246,21 @@ final class MouseBatteryMonitor {
                                         aliases: mouse.legacyKey.map { [$0] } ?? [])
             self?.update(key: mouse.key, name: mouse.displayName, battery: battery)
         }
-        transports[owner] = transport
+        transport.onEvent = { [weak self] in self?.note($0) }
+        transports[id] = (transport, owner)
         transport.start()
     }
 
     private func removeLogitech(_ device: IOHIDDevice) {
-        let owner = Self.ownerID(device)
-        guard let transport = transports.removeValue(forKey: owner) else { return }
-        transport.stop()
-        for mouse in transport.mice.values {
+        guard let entry = transports.removeValue(forKey: Self.registryID(device)) else { return }
+        entry.transport.stop()
+        note("disconnected: \(Self.string(device, kIOHIDProductKey) ?? "?")")
+        // Its replacement may already be here, under the same location.
+        let replaced = transports.values.contains { $0.owner == entry.owner }
+        for mouse in entry.transport.mice.values where !replaced {
             connected[mouse.key] = nil
         }
-        setMotionOwner(owner, nil)
+        if !replaced { setMotionOwner(entry.owner, nil) }
         changed()
     }
 
@@ -247,16 +273,19 @@ final class MouseBatteryMonitor {
             serial: Self.string(device, kIOHIDSerialNumberKey)
         ) else { return }
         let owner = Self.ownerID(device)
-        magicMice[owner] = (device, parsed.key)
+        magicMice[Self.registryID(device)] = (device, parsed.key, owner)
         setMotionOwner(owner, parsed.key)
+        note("connected: \(parsed.name)")
         readMagicMouse(device, key: parsed.key)
     }
 
     private func removePointingDevice(_ device: IOHIDDevice) {
-        let owner = Self.ownerID(device)
-        guard let mouse = magicMice.removeValue(forKey: owner) else { return }
-        setMotionOwner(owner, nil)
-        connected[mouse.key] = nil
+        guard let mouse = magicMice.removeValue(forKey: Self.registryID(device)) else { return }
+        note("disconnected: \(mouse.key)")
+        if !magicMice.values.contains(where: { $0.owner == mouse.owner }) {
+            setMotionOwner(mouse.owner, nil)
+            connected[mouse.key] = nil
+        }
         changed()
     }
 
@@ -327,6 +356,17 @@ final class MouseBatteryMonitor {
     private func changed() {
         recordDiagnostics()
         NotificationCenter.default.post(name: Self.didChangeNotification, object: self)
+    }
+
+    /// The last few connection and identification events, readable with
+    /// `defaults read com.smanke.MouseMileage diagnostics.batteryEvents`, so a
+    /// mouse that goes missing can be diagnosed after the fact.
+    private func note(_ event: String) {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd HH:mm:ss"
+        var events = UserDefaults.standard.stringArray(forKey: "diagnostics.batteryEvents") ?? []
+        events.append("\(formatter.string(from: Date())) \(event)")
+        UserDefaults.standard.set(Array(events.suffix(40)), forKey: "diagnostics.batteryEvents")
     }
 
     /// Readable with `defaults read com.smanke.MouseMileage`, to check what

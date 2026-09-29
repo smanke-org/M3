@@ -13,6 +13,17 @@ final class LogitechTransport {
     /// Products and pairing slots found to be mice, keyed by device index.
     private(set) var mice: [UInt8: LogitechMouse] = [:]
     var onBattery: ((LogitechMouse, HIDPP.Battery) -> Void)?
+    /// Short notes on identification, for the diagnostics log.
+    var onEvent: ((String) -> Void)?
+
+    /// Slots being identified now, slots that answered but aren't mice (a
+    /// keyboard on the same receiver), and failed attempts per slot.
+    private var identifying = Set<UInt8>()
+    private var notMice = Set<UInt8>()
+    private var failures: [UInt8: Int] = [:]
+    /// A mouse that has just connected or woken often doesn't answer at first.
+    /// Before 1.15.8 one unanswered request meant it was never picked up.
+    private static let retryDelays: [TimeInterval] = [2, 5, 15, 30, 60]
 
     private let reportBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 64)
     private struct Pending {
@@ -58,7 +69,13 @@ final class LogitechTransport {
     }
 
     /// Re-reads every known mouse's battery.
+    /// Re-reads batteries, and tries again to identify anything that hasn't
+    /// answered yet. Runs every few minutes and after the Mac wakes.
     func poll() {
+        let slots: [UInt8] = isReceiver ? Array(1...6) : [HIDPP.bluetoothDeviceIndex]
+        for slot in slots where mice[slot] == nil && !notMice.contains(slot) {
+            identify(deviceIndex: slot)
+        }
         for mouse in mice.values {
             if mouse.hasSerial, mouse.serial == nil { readSerial(mouse) }
             readBattery(mouse)
@@ -80,6 +97,8 @@ final class LogitechTransport {
     /// Finds the device's features, and keeps it only if it's a mouse with a
     /// battery we can read.
     private func identify(deviceIndex: UInt8) {
+        guard !identifying.contains(deviceIndex) else { return }
+        identifying.insert(deviceIndex)
         var mouse = LogitechMouse(deviceIndex: deviceIndex, product: property(kIOHIDProductKey) ?? "Logitech mouse")
         let features: [HIDPP.Feature] = [.deviceInformation, .deviceNameType, .unifiedBattery, .batteryStatus]
         var remaining = features
@@ -89,7 +108,7 @@ final class LogitechTransport {
             remaining.removeFirst()
             send(deviceIndex, 0, function: 0, params: [UInt8(feature.rawValue >> 8), UInt8(feature.rawValue & 0xFF)]) { params in
                 // A device that doesn't answer the root feature is absent or asleep.
-                guard let params else { return }
+                guard let params else { return failed("no answer to feature lookup") }
                 if params[0] != 0 { mouse.featureIndex[feature] = params[0] }
                 lookupNext()
             }
@@ -102,7 +121,9 @@ final class LogitechTransport {
                 return readIdentity()
             }
             send(deviceIndex, index, function: 2) { params in
-                mouse.isPointingDevice = params.flatMap { HIDPP.DeviceType(rawValue: $0[0]) }?.isPointingDevice ?? false
+                // No answer is a failure to retry, not a verdict that it isn't a mouse.
+                guard let params else { return failed("no answer to device type") }
+                mouse.isPointingDevice = HIDPP.DeviceType(rawValue: params[0])?.isPointingDevice ?? false
                 readIdentity()
             }
         }
@@ -110,9 +131,14 @@ final class LogitechTransport {
         func readIdentity() {
             guard mouse.isPointingDevice,
                   mouse.featureIndex[.unifiedBattery] != nil || mouse.featureIndex[.batteryStatus] != nil,
-                  let infoIndex = mouse.featureIndex[.deviceInformation] else { return }
+                  let infoIndex = mouse.featureIndex[.deviceInformation] else {
+                identifying.remove(deviceIndex)
+                notMice.insert(deviceIndex)
+                onEvent?("\(mouse.product) slot \(deviceIndex): not a mouse with a readable battery")
+                return
+            }
             send(deviceIndex, infoIndex, function: 0) { params in
-                guard let info = params.flatMap(HIDPP.deviceInfo) else { return }
+                guard let info = params.flatMap(HIDPP.deviceInfo) else { return failed("no answer to device info") }
                 mouse.unitID = info.unitID
                 mouse.hasSerial = info.hasSerial
                 guard info.hasSerial else { return readName() }
@@ -147,8 +173,27 @@ final class LogitechTransport {
         }
 
         func finish() {
+            identifying.remove(deviceIndex)
+            failures[deviceIndex] = nil
             mice[deviceIndex] = mouse
+            onEvent?("identified \(mouse.product) (\(mouse.key))")
             readBattery(mouse)
+        }
+
+        func failed(_ reason: String) {
+            identifying.remove(deviceIndex)
+            // Empty receiver slots never answer; they're retried by poll() and
+            // when the receiver reports a device connecting, not on a timer.
+            guard !isReceiver else { return }
+            let attempt = (failures[deviceIndex] ?? 0) + 1
+            failures[deviceIndex] = attempt
+            let retry = attempt <= Self.retryDelays.count ? Self.retryDelays[attempt - 1] : nil
+            onEvent?("\(mouse.product): \(reason), attempt \(attempt)" + (retry.map { ", retrying in \(Int($0)) s" } ?? ", next try at the next poll"))
+            guard let retry else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + retry) { [weak self] in
+                guard let self, self.mice[deviceIndex] == nil else { return }
+                self.identify(deviceIndex: deviceIndex)
+            }
         }
 
         lookupNext()
@@ -229,6 +274,7 @@ final class LogitechTransport {
         case let .receiverConnection(deviceIndex)?:
             // A mouse behind a receiver woke up or was paired: (re)identify it.
             guard isReceiver, (1...6).contains(deviceIndex) else { return }
+            notMice.remove(deviceIndex)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
                 self?.identify(deviceIndex: deviceIndex)
             }
