@@ -1,6 +1,6 @@
 #!/usr/bin/env swift
 // Generates the app icon: a periodic-table style element tile — atomic number
-// "26" (iron, for mileage), the "M³" symbol, and the name along the bottom.
+// "27", tipped 45° to the left, the "M³" symbol, and the name along the bottom.
 // Run with:
 //   swift Tools/generate_icon.swift
 //
@@ -80,15 +80,22 @@ func size(of string: String, size: CGFloat) -> NSSize {
     return NSAttributedString(string: string, attributes: attributes).size()
 }
 
-// Atomic number, top-left. Nudged up in the small variant so it still reads
-// once the name is gone.
+// Atomic number, top-left, tipped 45° to the left (counterclockwise) about
+// its own centre. Nudged up in the small variant so it still reads once the
+// name is gone.
+let number = "27"
 let numberSize = side * (includeName ? 0.115 : 0.135)
 let numberInset = side * 0.075
-let numberHeight = size(of: "26", size: numberSize).height
-draw("26", size: numberSize, at: CGPoint(
-    x: tile.minX + numberInset,
-    y: tile.maxY - numberInset - numberHeight
-))
+let numberBox = size(of: number, size: numberSize)
+let numberCentre = CGPoint(
+    x: tile.minX + numberInset + numberBox.width / 2,
+    y: tile.maxY - numberInset - numberBox.height / 2
+)
+ctx.saveGState()
+ctx.translateBy(x: numberCentre.x, y: numberCentre.y)
+ctx.rotate(by: .pi / 4)
+draw(number, size: numberSize, at: CGPoint(x: -numberBox.width / 2, y: -numberBox.height / 2))
+ctx.restoreGState()
 
 // "M" with a superscript "3", treated as one unit so it centres properly.
 // Without the name below it, the symbol grows and recentres to fill the tile.
