@@ -6,6 +6,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let preferencesController = PreferencesWindowController()
     private let historyViewModel = HistoryViewModel()
     private let batteryViewModel = BatteryViewModel()
+    private lazy var chartWindow = ChartWindowController(viewModel: historyViewModel)
     private var chartsItem: NSMenuItem?
     /// "More Charts ▸": a submenu holding one view with the flyout's cards.
     private var flyoutItem: NSMenuItem?
@@ -95,14 +96,24 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private func installChartsViews() {
         let layout = Layout.current
         chartsItem?.view = hostingView(MenuChartsView(viewModel: historyViewModel, batteryViewModel: batteryViewModel,
-                                                      cards: layout.menu))
+                                                      cards: layout.menu, onExpandChart: { [weak self] in self?.expand($0) }))
 
         // Two columns once there are several cards, so the flyout fits a laptop screen too.
         let columns = layout.flyout.count >= 4 ? 2 : 1
         flyoutMenu.items.first?.view = hostingView(MenuChartsView(viewModel: historyViewModel, batteryViewModel: batteryViewModel,
-                                                                  cards: layout.flyout, showsTotals: false, columns: columns))
+                                                                  cards: layout.flyout, showsTotals: false, columns: columns,
+                                                                  onExpandChart: { [weak self] in self?.expand($0) }))
         flyoutItem?.isHidden = layout.flyout.isEmpty
         builtLayout = layout
+    }
+
+    /// A chart clicked in the menu or flyout: close the menu, then open the
+    /// chart in its window. Opened on the next turn, once the menu has gone.
+    private func expand(_ card: MenuCard) {
+        statusItem.menu?.cancelTracking()
+        DispatchQueue.main.async { [weak self] in
+            self?.chartWindow.show(card)
+        }
     }
 
     private func hostingView(_ view: MenuChartsView) -> NSView {

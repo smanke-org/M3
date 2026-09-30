@@ -9,6 +9,8 @@ struct MenuChartsView: View {
     var cards: [MenuCard]
     var showsTotals = true
     var columns = 1
+    /// Pops a chart out into its own window.
+    var onExpandChart: ((MenuCard) -> Void)? = nil
 
     static let columnWidth: CGFloat = 340
     private static let spacing: CGFloat = 12
@@ -56,9 +58,8 @@ struct MenuChartsView: View {
         switch card {
         case .topApps: TopAppsCard(viewModel: viewModel)
         case .battery: BatteryCard(viewModel: batteryViewModel)
-        case .todayByHour: ChartCard(title: card.title, buckets: viewModel.byHour, scroll: viewModel.scrollByHour, xAxisStyle: .hour)
-        case .byDay: ChartCard(title: card.title, buckets: viewModel.byDay, scroll: viewModel.scrollByDay, xAxisStyle: .day)
-        case .yearToDate: ChartCard(title: card.title, buckets: viewModel.yearToDate, scroll: viewModel.scrollYearToDate, xAxisStyle: .month)
+        case .todayByHour, .byDay, .yearToDate:
+            ExpandableChart(viewModel: viewModel, card: card, onExpand: onExpandChart.map { expand in { expand(card) } })
         }
     }
 
@@ -87,7 +88,7 @@ struct MenuChartsView: View {
     }
 }
 
-private enum XAxisStyle {
+enum XAxisStyle {
     case hour, day, month
 }
 
@@ -114,12 +115,20 @@ enum SeriesColor {
     }
 }
 
-private struct ChartCard: View {
+struct ChartCard: View {
     let title: String
     let buckets: [MileageHistoryStore.Bucket]
     /// Distance scrolled over the same periods, drawn as a second line.
     let scroll: [MileageHistoryStore.Bucket]
     let xAxisStyle: XAxisStyle
+    /// In the pop-out window: fills the space it's given, with larger labels
+    /// and a readout of the values under the pointer.
+    var isExpanded = false
+    /// In the menu: clicking the card pops it out into a window.
+    var onExpand: (() -> Void)? = nil
+
+    @State private var hoverDate: Date?
+    private var labelSize: CGFloat { isExpanded ? 11 : 9 }
 
     private static let calendar = Calendar.current
 
@@ -246,10 +255,10 @@ private struct ChartCard: View {
 
     private func legendItem(_ label: String, _ color: Color) -> some View {
         HStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 1).fill(color).frame(width: 10, height: 2.5)
+            RoundedRectangle(cornerRadius: 1).fill(color).frame(width: isExpanded ? 14 : 10, height: 2.5)
             Text(label)
         }
-        .font(.system(size: 10))
+        .font(.system(size: isExpanded ? 12 : 10))
         .foregroundStyle(.secondary)
     }
 
@@ -257,12 +266,24 @@ private struct ChartCard: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
                 Text(title)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: isExpanded ? 15 : 12, weight: .semibold))
                     .foregroundStyle(.primary)
+                if onExpand != nil {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .help("Open in a window")
+                }
                 Spacer()
                 // On the title row, so the card is no taller than before.
                 legendItem("Pointer", SeriesColor.pointer)
                 legendItem("Scroll", SeriesColor.scroll)
+            }
+            if isExpanded {
+                Text(readout)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
             }
 
             Chart {
@@ -270,6 +291,23 @@ private struct ChartCard: View {
                 lineContent
                 scrollContent
                 nowMarkerContent
+                hoverContent
+            }
+            .chartOverlay { proxy in
+                if isExpanded {
+                    GeometryReader { geometry in
+                        Rectangle().fill(Color.clear).contentShape(Rectangle())
+                            .onContinuousHover { phase in
+                                switch phase {
+                                case .active(let location):
+                                    let x = location.x - geometry[proxy.plotAreaFrame].origin.x
+                                    hoverDate = proxy.value(atX: x, as: Date.self).flatMap(nearestBucketStart)
+                                case .ended:
+                                    hoverDate = nil
+                                }
+                            }
+                    }
+                }
             }
             .chartYScale(domain: 0...maxValue)
             .chartYAxis {
@@ -278,7 +316,7 @@ private struct ChartCard: View {
                     AxisValueLabel {
                         if let v = value.as(Double.self) {
                             Text("\(MetricsFormatter.tenths(v)) \(unitSuffix)")
-                                .font(.system(size: 9))
+                                .font(.system(size: labelSize))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -291,18 +329,78 @@ private struct ChartCard: View {
                     AxisValueLabel {
                         if let d = value.as(Date.self) {
                             Text(xLabel(for: d))
-                                .font(.system(size: 9))
+                                .font(.system(size: labelSize))
                                 .foregroundStyle(.secondary)
                         }
                     }
                 }
             }
-            .frame(height: 110)
+            .frame(minHeight: isExpanded ? 200 : 110, maxHeight: isExpanded ? .infinity : 110)
         }
-        .padding(10)
+        .padding(isExpanded ? 16 : 10)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color.gray.opacity(0.08))
         )
+        .contentShape(Rectangle())
+        .onTapGesture { onExpand?() }
+    }
+
+    // MARK: - Hover (pop-out window)
+
+    @ChartContentBuilder
+    private var hoverContent: some ChartContent {
+        if let hoverDate {
+            RuleMark(x: .value("Hover", hoverDate))
+                .lineStyle(StrokeStyle(lineWidth: 1))
+                .foregroundStyle(Color.secondary.opacity(0.6))
+        }
+    }
+
+    /// The bucket nearest the pointer, since each step is centred on its bucket.
+    private func nearestBucketStart(_ date: Date) -> Date? {
+        buckets.map(\.start).min { abs($0.timeIntervalSince(date)) < abs($1.timeIntervalSince(date)) }
+    }
+
+    private var readout: String {
+        guard let hoverDate else { return "Point at the chart to see its values." }
+        func value(_ series: [MileageHistoryStore.Bucket]) -> String {
+            let miles = series.first { $0.start == hoverDate }?.points ?? 0
+            return MetricsStore.distanceText(forPoints: miles * 5280 * 12 * 72)
+        }
+        return "\(Self.readoutFormatter(for: xAxisStyle).string(from: hoverDate)) · Pointer \(value(buckets)) · Scroll \(value(scroll))"
+    }
+
+    private static func readoutFormatter(for style: XAxisStyle) -> DateFormatter {
+        let formatter = DateFormatter()
+        switch style {
+        case .hour: formatter.setLocalizedDateFormatFromTemplate("ha")
+        case .day: formatter.setLocalizedDateFormatFromTemplate("EEEEMMMd")
+        case .month: formatter.setLocalizedDateFormatFromTemplate("MMMMyyyy")
+        }
+        return formatter
+    }
+}
+
+/// One of the three charts, built from the shared view model. Used in the menu
+/// (small, clickable) and in the pop-out window (expanded).
+struct ExpandableChart: View {
+    @ObservedObject var viewModel: HistoryViewModel
+    let card: MenuCard
+    var isExpanded = false
+    var onExpand: (() -> Void)? = nil
+
+    var body: some View {
+        switch card {
+        case .byDay:
+            ChartCard(title: card.title, buckets: viewModel.byDay, scroll: viewModel.scrollByDay, xAxisStyle: .day,
+                      isExpanded: isExpanded, onExpand: onExpand)
+        case .yearToDate:
+            ChartCard(title: card.title, buckets: viewModel.yearToDate, scroll: viewModel.scrollYearToDate, xAxisStyle: .month,
+                      isExpanded: isExpanded, onExpand: onExpand)
+        default:
+            ChartCard(title: MenuCard.todayByHour.title, buckets: viewModel.byHour, scroll: viewModel.scrollByHour, xAxisStyle: .hour,
+                      isExpanded: isExpanded, onExpand: onExpand)
+        }
     }
 }

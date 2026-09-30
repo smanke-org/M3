@@ -109,6 +109,11 @@ kept separate from pointer mileage and never added into it.
 
 ## Menu layout
 
+Click any chart (Today by Hour, By Day, Year to Date) in the menu or the flyout
+to open it in a **resizable window**, where it fills the space. Pointing at the
+chart there shows that hour's, day's or month's pointer and scroll distance. The
+window switches between the three charts and keeps updating while it's open.
+
 The dropdown always starts with the This Mac / All Macs totals. Beneath them,
 each card (Top Apps, Mileage per Charge, Today by Hour, By Day and Year to Date)
 can go in the menu, in the **More Charts ▸** flyout, in both, or in neither.
