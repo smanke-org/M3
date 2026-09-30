@@ -63,6 +63,11 @@ struct DeviceRecord: Codable, Equatable {
     // Mileage per battery charge, added in 1.15.0. Optional for the same reason.
     var mice: [MouseLog]? = nil
 
+    // Distance scrolled, added in 1.15.9. Optional for the same reason.
+    var scrollPoints: Double? = nil
+    var scrollHourly: [MileageHistoryStore.Bucket]? = nil
+    var scrollDaily: [MileageHistoryStore.Bucket]? = nil
+
     /// This Mac's per-app data in the form the ranking takes.
     var appSnapshot: AppUsageSnapshot {
         AppUsageSnapshot(allTime: apps ?? [:], days: appDays ?? [], names: appNames ?? [:])
@@ -171,6 +176,10 @@ final class CloudSync {
         MetricsStore.shared.totalPoints + remoteRecords.values.reduce(0) { $0 + $1.totalPoints }
     }
 
+    var allMacsScrollPoints: Double {
+        MetricsStore.shared.scrollPoints + remoteRecords.values.reduce(0) { $0 + ($1.scrollPoints ?? 0) }
+    }
+
     /// This Mac plus every other Mac that has synced.
     var macCount: Int { remoteRecords.count + 1 }
 
@@ -226,7 +235,10 @@ final class CloudSync {
             appNames: AppUsageStore.shared.names,
             // Left out entirely until a mouse has been seen, so files stay as
             // they were for anyone not using the feature.
-            mice: ChargeStore.shared.logs.isEmpty ? nil : Array(ChargeStore.shared.logs.values)
+            mice: ChargeStore.shared.logs.isEmpty ? nil : Array(ChargeStore.shared.logs.values),
+            scrollPoints: metrics.scrollPoints,
+            scrollHourly: MileageHistoryStore.scroll.hourlyBuckets,
+            scrollDaily: MileageHistoryStore.scroll.dailyBuckets
         )
     }
 

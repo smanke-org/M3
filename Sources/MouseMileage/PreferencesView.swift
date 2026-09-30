@@ -19,7 +19,7 @@ struct PreferencesView: View {
                 .tabItem { Label("Battery", systemImage: "battery.75") }
         }
         .padding(12)
-        .frame(width: 440)
+        .frame(width: 500)
     }
 
     private func page<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
@@ -51,6 +51,7 @@ struct PreferencesView: View {
     private var statsSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Mileage (this Mac): \(viewModel.mileageText)")
+            Text("Scrolled (this Mac): \(viewModel.scrolledText)")
             Text("Keystrokes: \(viewModel.keystrokesText)")
             Text("Clicks — \(viewModel.clicksText)")
             Text("Tracking since: \(viewModel.trackingSinceText)")
@@ -83,6 +84,7 @@ struct PreferencesView: View {
                 HStack(spacing: 8) {
                     sortHeader("App", .name).frame(maxWidth: .infinity, alignment: .leading)
                     sortHeader("Distance", .distance).frame(width: 70, alignment: .trailing)
+                    sortHeader("Scroll", .scroll).frame(width: 70, alignment: .trailing)
                     sortHeader("Clicks", .clicks).frame(width: 52, alignment: .trailing)
                     sortHeader("Keys", .keystrokes).frame(width: 60, alignment: .trailing)
                 }
@@ -101,6 +103,8 @@ struct PreferencesView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .help(app.name)
                                 Text(MetricsStore.distanceText(forPoints: app.usage.points))
+                                    .frame(width: 70, alignment: .trailing)
+                                Text(MetricsStore.distanceText(forPoints: app.usage.scrollPoints))
                                     .frame(width: 70, alignment: .trailing)
                                 Text(MetricsFormatter.count(app.usage.clicks))
                                     .frame(width: 52, alignment: .trailing)
@@ -286,7 +290,8 @@ struct PreferencesView: View {
             Button("Reset Mileage") { confirmAndRun("Reset mouse mileage to zero?", viewModel.resetMileage) }
             Button("Reset Keystrokes") { confirmAndRun("Reset keystroke count to zero?", viewModel.resetKeystrokes) }
             Button("Reset Clicks") { confirmAndRun("Reset left and right click counts to zero?", viewModel.resetClicks) }
-            Button("Reset All") { confirmAndRun("Reset all counters (mileage, keystrokes, and clicks) to zero?", viewModel.resetAll) }
+            Button("Reset Scroll Distance") { confirmAndRun("Reset the distance scrolled to zero?", viewModel.resetScroll) }
+            Button("Reset All") { confirmAndRun("Reset all counters (mileage, scrolling, keystrokes, and clicks) to zero?", viewModel.resetAll) }
         }
     }
 

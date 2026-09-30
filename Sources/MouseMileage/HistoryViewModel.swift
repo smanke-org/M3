@@ -9,6 +9,11 @@ final class HistoryViewModel: ObservableObject {
     @Published var byHour: [MileageHistoryStore.Bucket] = []
     @Published var byDay: [MileageHistoryStore.Bucket] = []
     @Published var yearToDate: [MileageHistoryStore.Bucket] = []
+    /// Distance scrolled, drawn as a second line on the same charts.
+    @Published var scrollByHour: [MileageHistoryStore.Bucket] = []
+    @Published var scrollByDay: [MileageHistoryStore.Bucket] = []
+    @Published var scrollYearToDate: [MileageHistoryStore.Bucket] = []
+    @Published var scrolledText = ""
 
     @Published var thisMacText = ""
     @Published var allMacsText = ""
@@ -60,6 +65,18 @@ final class HistoryViewModel: ObservableObject {
         byHour = history.todayByHour(from: hourly)
         byDay = history.last7Days(from: daily)
         yearToDate = history.yearToDate(from: daily)
+
+        let scroll = MileageHistoryStore.scroll
+        let scrollHourly = scroll.merge([scroll.hourlyBuckets] + remote.map { $0.scrollHourly ?? [] }, unit: .hour)
+        let scrollDaily = scroll.merge([scroll.dailyBuckets] + remote.map { $0.scrollDaily ?? [] }, unit: .day)
+        scrollByHour = scroll.todayByHour(from: scrollHourly)
+        scrollByDay = scroll.last7Days(from: scrollDaily)
+        scrollYearToDate = scroll.yearToDate(from: scrollDaily)
+
+        let thisMacScroll = MetricsStore.distanceText(forPoints: MetricsStore.shared.scrollPoints)
+        scrolledText = sync.isAvailable && sync.macCount > 1
+            ? "\(thisMacScroll) · All Macs \(MetricsStore.distanceText(forPoints: sync.allMacsScrollPoints))"
+            : thisMacScroll
 
         thisMacText = MetricsStore.distanceText(forPoints: MetricsStore.shared.totalPoints)
 

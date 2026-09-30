@@ -5,11 +5,32 @@ struct AppUsage: Codable, Equatable {
     var points: Double = 0
     var clicks: Int = 0
     var keystrokes: Int = 0
+    /// Distance scrolled, added in 1.15.9.
+    var scrollPoints: Double = 0
+
+    init(points: Double = 0, clicks: Int = 0, keystrokes: Int = 0, scrollPoints: Double = 0) {
+        self.points = points
+        self.clicks = clicks
+        self.keystrokes = keystrokes
+        self.scrollPoints = scrollPoints
+    }
+
+    /// Missing keys read as zero: data saved before 1.15.9, and other Macs'
+    /// files, have no `scrollPoints`, and the synthesized decoder would
+    /// reject them outright.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        points = try container.decodeIfPresent(Double.self, forKey: .points) ?? 0
+        clicks = try container.decodeIfPresent(Int.self, forKey: .clicks) ?? 0
+        keystrokes = try container.decodeIfPresent(Int.self, forKey: .keystrokes) ?? 0
+        scrollPoints = try container.decodeIfPresent(Double.self, forKey: .scrollPoints) ?? 0
+    }
 
     mutating func add(_ other: AppUsage) {
         points += other.points
         clicks += other.clicks
         keystrokes += other.keystrokes
+        scrollPoints += other.scrollPoints
     }
 }
 
@@ -155,15 +176,48 @@ final class AppUsageStore {
         credit { $0.keystrokes += 1 }
     }
 
+    /// Scrolling goes to the window under the pointer, which is often not the
+    /// frontmost app, so it's credited to that window's app. Looked up once per
+    /// scroll gesture (a window-server round trip), not per event.
+    func recordScroll(points: Double, startsGesture: Bool) {
+        let now = ProcessInfo.processInfo.systemUptime
+        if startsGesture || scrollKey == nil || now - lastScrollTime > 0.3 {
+            scrollKey = appUnderPointer()
+        }
+        lastScrollTime = now
+        credit(to: scrollKey ?? currentKey) { $0.scrollPoints += points }
+    }
+
+    private var scrollKey: String?
+    private var lastScrollTime: TimeInterval = 0
+
+    private func appUnderPointer() -> String? {
+        let windowNumber = NSWindow.windowNumber(at: NSEvent.mouseLocation, belowWindowWithWindowNumber: 0)
+        guard windowNumber > 0,
+              let info = CGWindowListCopyWindowInfo(.optionIncludingWindow, CGWindowID(windowNumber)) as? [[String: Any]],
+              let pid = info.first?[kCGWindowOwnerPID as String] as? pid_t,
+              let app = NSRunningApplication(processIdentifier: pid) else { return nil }
+        let key = app.bundleIdentifier ?? app.localizedName ?? Self.unknownKey
+        if let name = app.localizedName, names[key] != name {
+            names[key] = name
+            dirty = true
+        }
+        return key
+    }
+
     private func credit(_ change: (inout AppUsage) -> Void) {
+        credit(to: currentKey, change)
+    }
+
+    private func credit(to key: String, _ change: (inout AppUsage) -> Void) {
         let now = Date()
         let dayStart = calendar.startOfDay(for: now)
         if days.last?.start != dayStart {
             days.append(AppDay(start: dayStart, apps: [:]))
             prune(now: now)
         }
-        change(&days[days.count - 1].apps[currentKey, default: AppUsage()])
-        change(&allTime[currentKey, default: AppUsage()])
+        change(&days[days.count - 1].apps[key, default: AppUsage()])
+        change(&allTime[key, default: AppUsage()])
         dirty = true
     }
 
@@ -173,7 +227,7 @@ final class AppUsageStore {
     }
 
     /// Clears the chosen metrics for every app, matching the Preferences resets.
-    func reset(points: Bool, clicks: Bool, keystrokes: Bool) {
+    func reset(points: Bool, clicks: Bool, keystrokes: Bool, scroll: Bool = false) {
         // Apps with nothing left are dropped, so the lists don't fill with zeroes.
         func cleared(_ apps: [String: AppUsage]) -> [String: AppUsage] {
             apps.compactMapValues { usage in
@@ -181,6 +235,7 @@ final class AppUsageStore {
                 if points { usage.points = 0 }
                 if clicks { usage.clicks = 0 }
                 if keystrokes { usage.keystrokes = 0 }
+                if scroll { usage.scrollPoints = 0 }
                 return usage == AppUsage() ? nil : usage
             }
         }
@@ -260,7 +315,7 @@ final class AppUsageStore {
 
 /// A column the Preferences Apps list can be sorted by.
 enum AppSortColumn: String {
-    case name, distance, clicks, keystrokes
+    case name, distance, scroll, clicks, keystrokes
 
     /// Ties fall back to the name, A–Z, so the order is stable either way round.
     static func sorted(_ rows: [AppRanking.Row], by column: AppSortColumn, ascending: Bool) -> [AppRanking.Row] {
@@ -268,6 +323,7 @@ enum AppSortColumn: String {
             switch column {
             case .name: return a.name.localizedCaseInsensitiveCompare(b.name)
             case .distance: return value(a.usage.points, b.usage.points)
+            case .scroll: return value(a.usage.scrollPoints, b.usage.scrollPoints)
             case .clicks: return value(a.usage.clicks, b.usage.clicks)
             case .keystrokes: return value(a.usage.keystrokes, b.usage.keystrokes)
             }

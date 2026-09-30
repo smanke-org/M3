@@ -64,7 +64,7 @@ final class EventMonitor {
     }
 
     private func register() {
-        let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .leftMouseDown, .rightMouseDown, .keyDown]
+        let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .leftMouseDown, .rightMouseDown, .keyDown, .scrollWheel]
 
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
             self?.handle(event)
@@ -99,6 +99,16 @@ final class EventMonitor {
         NSWorkspace.shared.open(url)
     }
 
+    /// NSScrollView's default line height, for wheels that scroll in lines.
+    static let pointsPerScrollLine = 10.0
+
+    /// How far a scroll event moves the content, in points. Trackpads and the
+    /// Magic Mouse report points; a notched wheel reports lines.
+    static func scrollDistance(dx: Double, dy: Double, precise: Bool) -> Double {
+        let distance = (dx * dx + dy * dy).squareRoot()
+        return precise ? distance : distance * pointsPerScrollLine
+    }
+
     private func handle(_ event: NSEvent) {
         let store = MetricsStore.shared
         switch event.type {
@@ -115,6 +125,12 @@ final class EventMonitor {
             store.incrementRightClicks()
         case .keyDown:
             store.incrementKeystrokes()
+        case .scrollWheel:
+            // Momentum events (the glide after a flick) count too: the
+            // measure is how far the content moved.
+            let distance = Self.scrollDistance(dx: Double(event.scrollingDeltaX), dy: Double(event.scrollingDeltaY),
+                                               precise: event.hasPreciseScrollingDeltas)
+            store.addScroll(points: distance, startsGesture: event.phase.contains(.began) || event.phase.contains(.mayBegin))
         default:
             break
         }

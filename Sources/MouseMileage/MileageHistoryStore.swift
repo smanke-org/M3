@@ -4,7 +4,11 @@ import Foundation
 /// all-time running total kept by `MetricsStore`. Persists to `UserDefaults`
 /// so history survives restarts, same as the totals.
 final class MileageHistoryStore {
-    static let shared = MileageHistoryStore()
+    /// Pointer mileage.
+    static let shared = MileageHistoryStore(keyPrefix: "history")
+    /// Distance scrolled, charted as a second line. Same buckets, rules and
+    /// retention, stored under its own keys.
+    static let scroll = MileageHistoryStore(keyPrefix: "scrollHistory")
 
     struct Bucket: Codable, Identifiable, Equatable {
         var start: Date
@@ -13,10 +17,11 @@ final class MileageHistoryStore {
     }
 
     private let defaults = UserDefaults.standard
-    private enum Keys {
-        static let hourly = "history.hourly"
-        static let daily = "history.daily"
+    private struct Keys {
+        let hourly: String
+        let daily: String
     }
+    private let keys: Keys
 
     // Keep a bit more than we need so nothing is lost right at a boundary.
     private let hourlyRetention: TimeInterval = 26 * 3600
@@ -37,15 +42,16 @@ final class MileageHistoryStore {
     private let inchesPerFoot: Double = 12.0
     private let feetPerMile: Double = 5280.0
 
-    private init() {
+    private init(keyPrefix: String) {
+        keys = Keys(hourly: "\(keyPrefix).hourly", daily: "\(keyPrefix).daily")
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        if let data = defaults.data(forKey: Keys.hourly), let decoded = try? decoder.decode([Bucket].self, from: data) {
+        if let data = defaults.data(forKey: keys.hourly), let decoded = try? decoder.decode([Bucket].self, from: data) {
             hourly = decoded
         } else {
             hourly = []
         }
-        if let data = defaults.data(forKey: Keys.daily), let decoded = try? decoder.decode([Bucket].self, from: data) {
+        if let data = defaults.data(forKey: keys.daily), let decoded = try? decoder.decode([Bucket].self, from: data) {
             daily = decoded
         } else {
             daily = []
@@ -210,10 +216,10 @@ final class MileageHistoryStore {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         if let data = try? encoder.encode(hourly) {
-            defaults.set(data, forKey: Keys.hourly)
+            defaults.set(data, forKey: keys.hourly)
         }
         if let data = try? encoder.encode(daily) {
-            defaults.set(data, forKey: Keys.daily)
+            defaults.set(data, forKey: keys.daily)
         }
         dirty = false
     }

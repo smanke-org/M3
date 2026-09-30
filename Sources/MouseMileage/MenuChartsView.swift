@@ -56,9 +56,9 @@ struct MenuChartsView: View {
         switch card {
         case .topApps: TopAppsCard(viewModel: viewModel)
         case .battery: BatteryCard(viewModel: batteryViewModel)
-        case .todayByHour: ChartCard(title: card.title, buckets: viewModel.byHour, xAxisStyle: .hour)
-        case .byDay: ChartCard(title: card.title, buckets: viewModel.byDay, xAxisStyle: .day)
-        case .yearToDate: ChartCard(title: card.title, buckets: viewModel.yearToDate, xAxisStyle: .month)
+        case .todayByHour: ChartCard(title: card.title, buckets: viewModel.byHour, scroll: viewModel.scrollByHour, xAxisStyle: .hour)
+        case .byDay: ChartCard(title: card.title, buckets: viewModel.byDay, scroll: viewModel.scrollByDay, xAxisStyle: .day)
+        case .yearToDate: ChartCard(title: card.title, buckets: viewModel.yearToDate, scroll: viewModel.scrollYearToDate, xAxisStyle: .month)
         }
     }
 
@@ -71,6 +71,10 @@ struct MenuChartsView: View {
             GridRow {
                 Text("All Macs").foregroundStyle(.secondary)
                 Text(viewModel.allMacsText).monospacedDigit()
+            }
+            GridRow {
+                Text("Scrolled").foregroundStyle(.secondary)
+                Text(viewModel.scrolledText).monospacedDigit()
             }
         }
         .font(.system(size: 13))
@@ -93,9 +97,28 @@ private struct DisplayPoint: Identifiable {
     var id: Date { date }
 }
 
+/// The two series' colours: fixed categorical slots 1 and 2 (blue, orange),
+/// not the system accent colour, which varies by user and could match the
+/// other series. Validated for colour-blind separation in light and dark mode;
+/// orange is under 3:1 on the light card, so the legend always labels it.
+enum SeriesColor {
+    static let pointer = dynamic(light: 0x2A78D6, dark: 0x3987E5)
+    static let scroll = dynamic(light: 0xEB6834, dark: 0xD95926)
+
+    private static func dynamic(light: Int, dark: Int) -> Color {
+        Color(NSColor(name: nil) { appearance in
+            let hex = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+            return NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+                           blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+        })
+    }
+}
+
 private struct ChartCard: View {
     let title: String
     let buckets: [MileageHistoryStore.Bucket]
+    /// Distance scrolled over the same periods, drawn as a second line.
+    let scroll: [MileageHistoryStore.Bucket]
     let xAxisStyle: XAxisStyle
 
     private static let calendar = Calendar.current
@@ -103,20 +126,23 @@ private struct ChartCard: View {
     // Buckets arrive in miles; switch to feet when the whole chart is under a mile,
     // matching the menu bar's own feet/miles convention.
     private var useFeet: Bool {
-        (buckets.map(\.points).max() ?? 0) < 1.0
+        ((buckets + scroll).map(\.points).max() ?? 0) < 1.0
     }
 
     private var unitSuffix: String { useFeet ? "ft" : "mi" }
 
-    private var points: [DisplayPoint] {
+    private func display(_ buckets: [MileageHistoryStore.Bucket]) -> [DisplayPoint] {
         buckets.map { bucket in
-            let value = useFeet ? bucket.points * 5280 : bucket.points
-            return DisplayPoint(date: bucket.start, value: value)
+            DisplayPoint(date: bucket.start, value: useFeet ? bucket.points * 5280 : bucket.points)
         }
     }
 
+    private var points: [DisplayPoint] { display(buckets) }
+    private var scrollPoints: [DisplayPoint] { display(scroll) }
+
+    /// One axis for both series: they're the same measure, distance.
     private var maxValue: Double {
-        max(points.map(\.value).max() ?? 0, 0.1)
+        max((points + scrollPoints).map(\.value).max() ?? 0, 0.1)
     }
 
     private var yTicks: [Double] {
@@ -173,7 +199,7 @@ private struct ChartCard: View {
 
     private var areaGradient: LinearGradient {
         LinearGradient(
-            colors: [Color.accentColor.opacity(0.32), Color.accentColor.opacity(0.02)],
+            colors: [SeriesColor.pointer.opacity(0.32), SeriesColor.pointer.opacity(0.02)],
             startPoint: .top,
             endPoint: .bottom
         )
@@ -190,12 +216,23 @@ private struct ChartCard: View {
 
     @ChartContentBuilder
     private var lineContent: some ChartContent {
+        // Named series, so the two lines aren't joined into one.
         ForEach(points) { point in
-            LineMark(x: .value("Time", point.date), y: .value("Value", point.value))
+            LineMark(x: .value("Time", point.date), y: .value("Value", point.value), series: .value("Series", "Pointer"))
                 .interpolationMethod(.stepCenter)
         }
-        .foregroundStyle(Color.accentColor)
+        .foregroundStyle(SeriesColor.pointer)
         .lineStyle(StrokeStyle(lineWidth: 2.5))
+    }
+
+    @ChartContentBuilder
+    private var scrollContent: some ChartContent {
+        ForEach(scrollPoints) { point in
+            LineMark(x: .value("Time", point.date), y: .value("Value", point.value), series: .value("Series", "Scroll"))
+                .interpolationMethod(.stepCenter)
+        }
+        .foregroundStyle(SeriesColor.scroll)
+        .lineStyle(StrokeStyle(lineWidth: 2))
     }
 
     @ChartContentBuilder
@@ -207,15 +244,31 @@ private struct ChartCard: View {
         }
     }
 
+    private func legendItem(_ label: String, _ color: Color) -> some View {
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 1).fill(color).frame(width: 10, height: 2.5)
+            Text(label)
+        }
+        .font(.system(size: 10))
+        .foregroundStyle(.secondary)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.primary)
+            HStack(spacing: 10) {
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.primary)
+                Spacer()
+                // On the title row, so the card is no taller than before.
+                legendItem("Pointer", SeriesColor.pointer)
+                legendItem("Scroll", SeriesColor.scroll)
+            }
 
             Chart {
                 areaContent
                 lineContent
+                scrollContent
                 nowMarkerContent
             }
             .chartYScale(domain: 0...maxValue)

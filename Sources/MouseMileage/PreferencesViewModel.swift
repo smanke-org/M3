@@ -5,6 +5,7 @@ import SwiftUI
 
 final class PreferencesViewModel: ObservableObject {
     @Published var mileageText: String = ""
+    @Published var scrolledText: String = ""
     @Published var keystrokesText: String = ""
     @Published var clicksText: String = ""
     @Published var trackingSinceText: String = ""
@@ -116,6 +117,7 @@ final class PreferencesViewModel: ObservableObject {
     func refreshText() {
         let store = MetricsStore.shared
         mileageText = "\(MetricsFormatter.hundredths(store.totalMiles)) mi (\(MetricsFormatter.tenths(store.totalFeet)) ft)"
+        scrolledText = "\(MetricsFormatter.hundredths(store.scrollPoints / 72 / 12 / 5280)) mi (\(MetricsFormatter.tenths(store.scrollPoints / 72 / 12)) ft)"
         keystrokesText = MetricsFormatter.count(store.keystrokes)
         clicksText = "Left: \(MetricsFormatter.count(store.leftClicks))   Right: \(MetricsFormatter.count(store.rightClicks))"
 
@@ -218,6 +220,10 @@ final class PreferencesViewModel: ObservableObject {
 
     func resetClicks() {
         MetricsStore.shared.resetClicks()
+    }
+
+    func resetScroll() {
+        MetricsStore.shared.resetScroll()
     }
 
     func resetAll() {

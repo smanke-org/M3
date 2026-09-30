@@ -91,6 +91,22 @@ migration count twice. Resetting on the new Mac fixes it.
 real iCloud data. A debug build shares the installed app's device ID, so set it
 when running one alongside the installed app.
 
+## Scrolling
+
+The app also measures **how far content scrolls**: pages, documents, lists. It's
+kept separate from pointer mileage and never added into it.
+
+- A trackpad or Magic Mouse reports scrolling in points. A notched wheel reports
+  lines, counted as 10 pt each (NSScrollView's default line height). The glide
+  after a flick counts too, since the content keeps moving.
+- Scrolling is credited to the app **under the pointer**, since that's the
+  window that scrolls, even when it isn't the frontmost app. The app is looked
+  up once at the start of each scroll gesture.
+- It shows as a **Scrolled** line in the menu totals (this Mac, plus All Macs
+  when syncing), a second **orange line on every chart**, a sortable **Scroll**
+  column in Preferences › Apps, and a line in Preferences › General with its own
+  reset. It syncs across Macs like everything else.
+
 ## Menu layout
 
 The dropdown always starts with the This Mac / All Macs totals. Beneath them,

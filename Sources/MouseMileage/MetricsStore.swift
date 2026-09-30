@@ -11,6 +11,7 @@ final class MetricsStore {
 
     private enum Keys {
         static let totalPoints = "totalPoints"
+        static let scrollPoints = "scrollPoints"
         static let keystrokes = "keystrokes"
         static let leftClicks = "leftClicks"
         static let rightClicks = "rightClicks"
@@ -24,6 +25,8 @@ final class MetricsStore {
     private let feetPerMile: Double = 5280.0
 
     private(set) var totalPoints: Double
+    /// Distance scrolled. Kept apart from `totalPoints`, which is pointer travel.
+    private(set) var scrollPoints: Double
     private(set) var keystrokes: Int
     private(set) var leftClicks: Int
     private(set) var rightClicks: Int
@@ -36,6 +39,7 @@ final class MetricsStore {
 
     private init() {
         totalPoints = defaults.double(forKey: Keys.totalPoints)
+        scrollPoints = defaults.double(forKey: Keys.scrollPoints)
         keystrokes = defaults.integer(forKey: Keys.keystrokes)
         leftClicks = defaults.integer(forKey: Keys.leftClicks)
         rightClicks = defaults.integer(forKey: Keys.rightClicks)
@@ -66,6 +70,15 @@ final class MetricsStore {
         if let mouse = MouseBatteryMonitor.shared.movingMouseKey() {
             ChargeStore.shared.record(points: points, mouse: mouse)
         }
+        notifyChanged()
+    }
+
+    func addScroll(points: Double, startsGesture: Bool) {
+        guard points > 0, points.isFinite else { return }
+        scrollPoints += points
+        dirty = true
+        MileageHistoryStore.scroll.recordMovement(points: points)
+        AppUsageStore.shared.recordScroll(points: points, startsGesture: startsGesture)
         notifyChanged()
     }
 
@@ -116,8 +129,18 @@ final class MetricsStore {
         didReset()
     }
 
+    func resetScroll() {
+        scrollPoints = 0
+        dirty = true
+        saveIfNeeded()
+        MileageHistoryStore.scroll.resetHistory()
+        AppUsageStore.shared.reset(points: false, clicks: false, keystrokes: false, scroll: true)
+        didReset()
+    }
+
     func resetAll() {
         totalPoints = 0
+        scrollPoints = 0
         keystrokes = 0
         leftClicks = 0
         rightClicks = 0
@@ -126,7 +149,8 @@ final class MetricsStore {
         dirty = true
         saveIfNeeded()
         MileageHistoryStore.shared.resetHistory()
-        AppUsageStore.shared.reset(points: true, clicks: true, keystrokes: true)
+        MileageHistoryStore.scroll.resetHistory()
+        AppUsageStore.shared.reset(points: true, clicks: true, keystrokes: true, scroll: true)
         didReset()
     }
 
@@ -167,6 +191,7 @@ final class MetricsStore {
     func saveIfNeeded() {
         guard dirty else { return }
         defaults.set(totalPoints, forKey: Keys.totalPoints)
+        defaults.set(scrollPoints, forKey: Keys.scrollPoints)
         defaults.set(keystrokes, forKey: Keys.keystrokes)
         defaults.set(trackingStartedAt, forKey: Keys.trackingStartedAt)
         defaults.set(leftClicks, forKey: Keys.leftClicks)
