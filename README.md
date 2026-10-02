@@ -6,7 +6,7 @@ reboots (stored via `UserDefaults`, which is backed by disk).
 
 ## Install
 
-[**Download the latest release**](https://github.com/smanke/M3/releases/latest)
+[**Download the latest release**](https://github.com/smanke-org/M3/releases/latest)
 — a `.dmg` signed with a Developer ID certificate and notarized by Apple, so
 it opens cleanly with no Gatekeeper warning. Open the disk image, drag
 `M3 Tracker.app` to `/Applications`, and launch it. On first launch, grant
@@ -185,7 +185,7 @@ nothing else, and theirs don't touch it.
 
 ## Auto-update
 
-`UpdateController.swift` checks `https://api.github.com/repos/smanke/M3/releases/latest`,
+`UpdateController.swift` checks `https://api.github.com/repos/smanke-org/M3/releases/latest`,
 compares the tag against the running `CFBundleShortVersionString`
 (`AppInfo.version`, read straight from the bundle so it can't drift out of
 sync with `Info.plist`), and if newer, downloads the release's `.dmg` asset.
@@ -297,7 +297,7 @@ during a release; recapture it with `Tools/capture_dmg_layout.sh` if the window 
 There is no background picture: on macOS 27 Finder shows one only while it is dropped into
 the View Options picture well by hand and discards it when the window closes.
 4. Create a GitHub release tagged `v<version>` (matching the plist version)
-   at https://github.com/smanke/M3/releases/new and upload the `.dmg` as its
+   at https://github.com/smanke-org/M3/releases/new and upload the `.dmg` as its
    asset. `UpdateController` fetches whatever asset ends in `.dmg` from the
    **latest** release, so this is the step that actually makes an update
    available to installed copies of the app.
