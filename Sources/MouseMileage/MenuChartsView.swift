@@ -66,16 +66,20 @@ struct MenuChartsView: View {
     private var totals: some View {
         Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 4) {
             GridRow {
-                Text("This Mac").foregroundStyle(.secondary)
+                Text("Moved This Mac").foregroundStyle(.secondary)
                 Text(viewModel.thisMacText).monospacedDigit()
             }
             GridRow {
-                Text("All Macs").foregroundStyle(.secondary)
+                Text("Moved All Macs").foregroundStyle(.secondary)
                 Text(viewModel.allMacsText).monospacedDigit()
             }
             GridRow {
-                Text("Scrolled").foregroundStyle(.secondary)
-                Text(viewModel.scrolledText).monospacedDigit()
+                Text("Scrolled This Mac").foregroundStyle(.secondary)
+                Text(viewModel.scrolledThisMacText).monospacedDigit()
+            }
+            GridRow {
+                Text("Scrolled All Macs").foregroundStyle(.secondary)
+                Text(viewModel.scrolledAllMacsText).monospacedDigit()
             }
         }
         .font(.system(size: 13))

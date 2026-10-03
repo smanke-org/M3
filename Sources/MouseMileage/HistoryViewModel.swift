@@ -13,7 +13,8 @@ final class HistoryViewModel: ObservableObject {
     @Published var scrollByHour: [MileageHistoryStore.Bucket] = []
     @Published var scrollByDay: [MileageHistoryStore.Bucket] = []
     @Published var scrollYearToDate: [MileageHistoryStore.Bucket] = []
-    @Published var scrolledText = ""
+    @Published var scrolledThisMacText = ""
+    @Published var scrolledAllMacsText = ""
 
     @Published var thisMacText = ""
     @Published var allMacsText = ""
@@ -73,10 +74,12 @@ final class HistoryViewModel: ObservableObject {
         scrollByDay = scroll.last7Days(from: scrollDaily)
         scrollYearToDate = scroll.yearToDate(from: scrollDaily)
 
-        let thisMacScroll = MetricsStore.distanceText(forPoints: MetricsStore.shared.scrollPoints)
-        scrolledText = sync.isAvailable && sync.macCount > 1
-            ? "\(thisMacScroll) · All Macs \(MetricsStore.distanceText(forPoints: sync.allMacsScrollPoints))"
-            : thisMacScroll
+        scrolledThisMacText = MetricsStore.distanceText(forPoints: MetricsStore.shared.scrollPoints)
+        // Always a row, like Moved All Macs: the menu's height is measured
+        // once, so a row that appeared later would be clipped.
+        scrolledAllMacsText = sync.isAvailable
+            ? MetricsStore.distanceText(forPoints: sync.allMacsScrollPoints)
+            : "iCloud Drive is off"
 
         thisMacText = MetricsStore.distanceText(forPoints: MetricsStore.shared.totalPoints)
 

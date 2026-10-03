@@ -104,8 +104,8 @@ kept separate from pointer mileage and never added into it.
 - Scrolling is credited to the app **under the pointer**, since that's the
   window that scrolls, even when it isn't the frontmost app. The app is looked
   up once at the start of each scroll gesture.
-- It shows as a **Scrolled** line in the menu totals (this Mac, plus All Macs
-  when syncing), a second **orange line on every chart**, a sortable **Scroll**
+- It shows as **Scrolled This Mac** and **Scrolled All Macs** rows in the menu
+  totals, under **Moved This Mac** and **Moved All Macs**, a second **orange line on every chart**, a sortable **Scroll**
   column in Preferences › Apps, and a line in Preferences › General with its own
   reset. It syncs across Macs like everything else.
 
