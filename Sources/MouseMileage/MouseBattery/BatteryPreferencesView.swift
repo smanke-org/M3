@@ -5,6 +5,7 @@ import SwiftUI
 /// Preferences › Battery: turning the feature on, and each mouse's charges.
 struct BatteryPreferencesView: View {
     @ObservedObject var viewModel: BatteryViewModel
+    @State private var warnsWhenLow = LowBatteryWarner.isEnabled
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -38,6 +39,15 @@ struct BatteryPreferencesView: View {
                     }
                 }
                 Divider()
+                HStack {
+                    Toggle("Warn when a mouse's battery is below \(LowBatteryPolicy.thresholdPercent)%", isOn: $warnsWhenLow)
+                        .toggleStyle(.checkbox)
+                        // Saved here: a didSet on @State doesn't run for changes made through its binding.
+                        .onChange(of: warnsWhenLow) { LowBatteryWarner.isEnabled = $0 }
+                    Spacer()
+                    Button("Preview") { LowBatteryWarner.shared.preview() }
+                        .help("Show the warning now, to see what it looks like")
+                }
                 Button("Turn Off Mileage per Charge") { viewModel.setEnabled(false) }
             }
         }

@@ -80,6 +80,9 @@ enum HIDPP {
         var percent: Int
         /// Plugged in, whether still charging or full.
         var isCharging: Bool
+        /// The mouse's own "critical" flag. Some mice report their level in
+        /// coarse steps, so this can come before the percentage looks low.
+        var isCritical = false
     }
 
     /// Feature 0x1004 `getStatus` (function 1), and its battery events.
@@ -87,7 +90,9 @@ enum HIDPP {
     /// 1–2 charging, 3 charged, 4 error.
     static func unifiedBattery(_ params: [UInt8]) -> Battery? {
         guard params.count >= 3, params[0] <= 100 else { return nil }
-        return Battery(percent: Int(params[0]), isCharging: (1...3).contains(params[2]))
+        // params[1] is the level as flags: 1 critical, 2 low, 4 good, 8 full.
+        return Battery(percent: Int(params[0]), isCharging: (1...3).contains(params[2]),
+                       isCritical: params[1] & 0x01 != 0)
     }
 
     /// Feature 0x1000 `getBatteryLevelStatus` (function 0), for older mice.

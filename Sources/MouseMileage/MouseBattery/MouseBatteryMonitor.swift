@@ -306,6 +306,7 @@ final class MouseBatteryMonitor {
         if let battery {
             ChargeStore.shared.recordBattery(mouse: key, name: name, percent: battery.percent,
                                              isCharging: battery.isCharging)
+            LowBatteryWarner.shared.check(key: key, model: name, battery: battery)
         }
         changed()
     }

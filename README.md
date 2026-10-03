@@ -182,6 +182,13 @@ nothing else, and theirs don't touch it.
   Easy-Switch mouse is one mouse on every Mac. Each Mac syncs its readings and
   hourly movement for the mouse in its iCloud Drive file, and charges are worked
   out from all of them together.
+- **Low-battery warning:** when a tracked mouse drops below 5% (or reports
+  itself critical, since some mice report their level in coarse steps), a notice
+  appears in the top-right corner naming its make and model, for example
+  "Logitech MX Master 4". It's a floating card in the style of NetworkToggle's
+  panel: it doesn't take focus, and a click anywhere on it dismisses it. It's
+  shown once per discharge and comes back only after the mouse has been charged.
+  It can be turned off, or previewed, in Preferences › Battery.
 - The menu gets a **Mileage per Charge** card, and Preferences › **Battery** has
   the chart and the list of charges.
 - **Telling identical mice apart:** click the pencil next to a mouse's name in
