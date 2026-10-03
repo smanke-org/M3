@@ -99,14 +99,22 @@ final class EventMonitor {
         NSWorkspace.shared.open(url)
     }
 
-    /// NSScrollView's default line height, for wheels that scroll in lines.
+    /// NSScrollView's default line height. Only a fallback, for a wheel event
+    /// that arrives without the point distance macOS normally attaches.
     static let pointsPerScrollLine = 10.0
 
-    /// How far a scroll event moves the content, in points. Trackpads and the
-    /// Magic Mouse report points; a notched wheel reports lines.
-    static func scrollDistance(dx: Double, dy: Double, precise: Bool) -> Double {
-        let distance = (dx * dx + dy * dy).squareRoot()
-        return precise ? distance : distance * pointsPerScrollLine
+    /// How far a scroll event moves the content, in points.
+    ///
+    /// Trackpads and the Magic Mouse report points. A notched wheel reports
+    /// lines, and 1.15.9–1.15.11 counted each as 10 pt, which undercounted
+    /// badly: macOS scrolls a line much further, and accelerates a fast spin.
+    /// The event's point deltas are what macOS actually scrolled, so they're
+    /// used whenever they're present.
+    static func scrollDistance(dx: Double, dy: Double, precise: Bool, pointDX: Double = 0, pointDY: Double = 0) -> Double {
+        if precise { return (dx * dx + dy * dy).squareRoot() }
+        let points = (pointDX * pointDX + pointDY * pointDY).squareRoot()
+        if points > 0 { return points }
+        return (dx * dx + dy * dy).squareRoot() * pointsPerScrollLine
     }
 
     private func handle(_ event: NSEvent) {
@@ -128,8 +136,15 @@ final class EventMonitor {
         case .scrollWheel:
             // Momentum events (the glide after a flick) count too: the
             // measure is how far the content moved.
-            let distance = Self.scrollDistance(dx: Double(event.scrollingDeltaX), dy: Double(event.scrollingDeltaY),
-                                               precise: event.hasPreciseScrollingDeltas)
+            // For a notched wheel, macOS reports lines in scrollingDelta but
+            // also the points it actually scrolled for them, with acceleration.
+            let cg = event.cgEvent
+            let pointDY = Double(cg?.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) ?? 0)
+            let pointDX = Double(cg?.getIntegerValueField(.scrollWheelEventPointDeltaAxis2) ?? 0)
+            let dx = Double(event.scrollingDeltaX), dy = Double(event.scrollingDeltaY)
+            let precise = event.hasPreciseScrollingDeltas
+            let distance = Self.scrollDistance(dx: dx, dy: dy, precise: precise, pointDX: pointDX, pointDY: pointDY)
+            InputDiagnostics.shared.recordScroll(precise: precise, lines: (dx * dx + dy * dy).squareRoot(), points: distance)
             store.addScroll(points: distance, startsGesture: event.phase.contains(.began) || event.phase.contains(.mayBegin))
         default:
             break

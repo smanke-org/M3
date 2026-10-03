@@ -4,7 +4,11 @@ import XCTest
 final class ScrollTests: XCTestCase {
     func testScrollDistanceFromPreciseAndLineDeltas() {
         XCTAssertEqual(EventMonitor.scrollDistance(dx: 3, dy: -4, precise: true), 5, "trackpad deltas are points")
-        XCTAssertEqual(EventMonitor.scrollDistance(dx: 0, dy: -2, precise: false), 20, "a wheel's lines are 10 pt each")
+        XCTAssertEqual(EventMonitor.scrollDistance(dx: 0, dy: -2, precise: false), 20, "with no point delta, a wheel line is 10 pt")
+        XCTAssertEqual(EventMonitor.scrollDistance(dx: 0, dy: -2, precise: false, pointDX: 0, pointDY: -84), 84,
+                       "a wheel uses the points macOS actually scrolled")
+        XCTAssertEqual(EventMonitor.scrollDistance(dx: 3, dy: 4, precise: true, pointDX: 0, pointDY: 99), 5,
+                       "precise deltas are used as they are")
     }
 
     /// Data saved before 1.15.9, and other Macs' files, have no scrollPoints.
@@ -63,5 +67,23 @@ final class ScrollTests: XCTestCase {
         store.reset(points: false, clicks: false, keystrokes: false, scroll: true)
         XCTAssertEqual(store.allTime.values.reduce(0) { $0 + $1.scrollPoints }, 0)
         XCTAssertEqual(store.allTime.values.reduce(0) { $0 + $1.points }, 10)
+    }
+}
+
+final class DiagnosticsTests: XCTestCase {
+    func testDeviceRecordCarriesDiagnosticsAndOlderFilesStillDecode() throws {
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        var record = DeviceRecord(deviceID: "x", deviceName: "X", updatedAt: Date(timeIntervalSince1970: 1_790_000_000),
+                                  trackingStartedAt: Date(timeIntervalSince1970: 1_780_000_000),
+                                  totalPoints: 1, keystrokes: 0, leftClicks: 0, rightClicks: 0, hourly: [], daily: [])
+        let older = try decoder.decode(DeviceRecord.self, from: encoder.encode(record))
+        XCTAssertNil(older.diagnostics)
+
+        record.diagnostics = DeviceDiagnostics(appVersion: "1.15.12", launchedAt: Date(timeIntervalSince1970: 1_790_000_000),
+                                               accessibilityTrusted: true, preciseScrollEvents: 3, wheelScrollEvents: 2,
+                                               wheelLines: 4, wheelPoints: 160, lastScrollAt: nil,
+                                               batteryStatus: "running", batteryEvents: ["started"])
+        XCTAssertEqual(try decoder.decode(DeviceRecord.self, from: encoder.encode(record)), record)
     }
 }

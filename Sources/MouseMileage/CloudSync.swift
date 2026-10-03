@@ -68,6 +68,10 @@ struct DeviceRecord: Codable, Equatable {
     var scrollHourly: [MileageHistoryStore.Bucket]? = nil
     var scrollDaily: [MileageHistoryStore.Bucket]? = nil
 
+    /// Version, permissions and input counts, for looking into a problem on
+    /// this Mac from another one. Added in 1.15.12; optional like the rest.
+    var diagnostics: DeviceDiagnostics? = nil
+
     /// This Mac's per-app data in the form the ranking takes.
     var appSnapshot: AppUsageSnapshot {
         AppUsageSnapshot(allTime: apps ?? [:], days: appDays ?? [], names: appNames ?? [:])
@@ -238,7 +242,8 @@ final class CloudSync {
             mice: ChargeStore.shared.logs.isEmpty ? nil : Array(ChargeStore.shared.logs.values),
             scrollPoints: metrics.scrollPoints,
             scrollHourly: MileageHistoryStore.scroll.hourlyBuckets,
-            scrollDaily: MileageHistoryStore.scroll.dailyBuckets
+            scrollDaily: MileageHistoryStore.scroll.dailyBuckets,
+            diagnostics: InputDiagnostics.shared.snapshot
         )
     }
 

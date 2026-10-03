@@ -97,8 +97,10 @@ The app also measures **how far content scrolls**: pages, documents, lists. It's
 kept separate from pointer mileage and never added into it.
 
 - A trackpad or Magic Mouse reports scrolling in points. A notched wheel reports
-  lines, counted as 10 pt each (NSScrollView's default line height). The glide
-  after a flick counts too, since the content keeps moving.
+  lines, but macOS also attaches the points it actually scrolled for them
+  (`scrollWheelEventPointDeltaAxis1/2`, with acceleration), and that's what's
+  counted. 1.15.9–1.15.11 counted 10 pt per line, which undercounted wheel
+  scrolling. The glide after a flick counts too, since the content keeps moving.
 - Scrolling is credited to the app **under the pointer**, since that's the
   window that scrolls, even when it isn't the frontmost app. The app is looked
   up once at the start of each scroll gesture.
@@ -106,6 +108,15 @@ kept separate from pointer mileage and never added into it.
   when syncing), a second **orange line on every chart**, a sortable **Scroll**
   column in Preferences › Apps, and a line in Preferences › General with its own
   reset. It syncs across Macs like everything else.
+
+## Troubleshooting another Mac
+
+Each Mac's iCloud Drive file (`M3 Tracker/Devices/<id>.json`) includes a
+`diagnostics` section: app version, launch time, whether Accessibility is
+granted, scroll events since launch split into trackpad and wheel, the lines
+and points behind the wheel events, the last scroll time, and the battery
+tracker's status and recent events. So a problem on one Mac can be looked into
+from any other.
 
 ## Menu layout
 
