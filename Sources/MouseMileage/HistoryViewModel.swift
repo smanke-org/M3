@@ -77,8 +77,10 @@ final class HistoryViewModel: ObservableObject {
         scrolledThisMacText = MetricsStore.distanceText(forPoints: MetricsStore.shared.scrollPoints)
         // Always a row, like Moved All Macs: the menu's height is measured
         // once, so a row that appeared later would be clipped.
+        // The same Mac count as Moved All Macs, from the same source, so the
+        // two rows can't disagree.
         scrolledAllMacsText = sync.isAvailable
-            ? MetricsStore.distanceText(forPoints: sync.allMacsScrollPoints)
+            ? "\(MetricsStore.distanceText(forPoints: sync.allMacsScrollPoints)) · \(Self.macCountText(sync.macCount))"
             : "iCloud Drive is off"
 
         thisMacText = MetricsStore.distanceText(forPoints: MetricsStore.shared.totalPoints)
@@ -87,13 +89,16 @@ final class HistoryViewModel: ObservableObject {
             allMacsText = "iCloud Drive is off"
             chartsScopeText = "Apps and charts: this Mac only (iCloud Drive is off)"
         } else {
-            let count = sync.macCount
-            let macs = count == 1 ? "1 Mac" : "\(count) Macs"
+            let macs = Self.macCountText(sync.macCount)
             allMacsText = "\(MetricsStore.distanceText(forPoints: sync.allMacsPoints)) · \(macs)"
-            chartsScopeText = count == 1 ? "Apps and charts: this Mac (no other Macs synced yet)" : "Apps and charts: all \(macs) combined"
+            chartsScopeText = sync.macCount == 1 ? "Apps and charts: this Mac (no other Macs synced yet)" : "Apps and charts: all \(macs) combined"
         }
 
         refreshApps()
+    }
+
+    static func macCountText(_ count: Int) -> String {
+        count == 1 ? "1 Mac" : "\(count) Macs"
     }
 
     func refreshApps() {

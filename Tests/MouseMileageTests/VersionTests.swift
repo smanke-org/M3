@@ -10,3 +10,10 @@ final class VersionTests: XCTestCase {
         XCTAssertFalse(UpdateController.isNewer("1.15.10", than: "1.15.10"))
     }
 }
+
+final class MacCountTextTests: XCTestCase {
+    func testMacCountText() {
+        XCTAssertEqual(HistoryViewModel.macCountText(1), "1 Mac")
+        XCTAssertEqual(HistoryViewModel.macCountText(3), "3 Macs")
+    }
+}
