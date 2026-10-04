@@ -46,6 +46,13 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         for name in [MetricsStore.didUpdateNotification, CloudSync.didUpdateNotification, MenuBarSettings.didChangeNotification] {
             NotificationCenter.default.addObserver(self, selector: #selector(updateTitle), name: name, object: nil)
         }
+
+        // Preferences can hide the menu bar icon (the app then lives in the Dock, or nowhere).
+        statusItem.isVisible = AppPresence.showInMenuBar
+        NotificationCenter.default.addObserver(forName: AppPresence.menuBarDidChange, object: nil,
+                                               queue: .main) { [weak self] _ in
+            self?.statusItem.isVisible = AppPresence.showInMenuBar
+        }
     }
 
     private func buildMenu() {

@@ -220,7 +220,17 @@ struct PreferencesView: View {
 
             Toggle("Show in Dock", isOn: $viewModel.showInDock)
                 .toggleStyle(.checkbox)
-                .help("Adds a Dock icon whose right-click menu opens Preferences. \(AppInfo.shortName) stays in the menu bar either way.")
+                .help("Adds a Dock icon whose right-click menu opens Preferences.")
+
+            Toggle("Show in menu bar", isOn: $viewModel.showInMenuBar)
+                .toggleStyle(.checkbox)
+
+            if !viewModel.showInDock && !viewModel.showInMenuBar {
+                Text(AppPresence.hiddenEverywhereNote(appName: AppInfo.shortName, settingsName: "Preferences"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
 
             if let error = viewModel.launchAtLoginError {
