@@ -67,6 +67,15 @@ final class PreferencesViewModel: ObservableObject {
     @Published var checkForUpdatesAtLaunch: Bool {
         didSet { UpdateSettings.checkForUpdatesAtLaunch = checkForUpdatesAtLaunch }
     }
+    /// A Dock icon whose right-click menu opens Preferences. Off by default.
+    @Published var showInDock: Bool {
+        didSet {
+            guard showInDock != DockIcon.isShown else { return }
+            DockIcon.isShown = showInDock
+            // Preferences is the key window while its own toggle is clicked.
+            DockIcon.apply(keepInFront: NSApp.keyWindow)
+        }
+    }
     @Published var menuBarShowsAllMacs: Bool {
         didSet { MenuBarSettings.showsAllMacs = menuBarShowsAllMacs }
     }
@@ -85,6 +94,7 @@ final class PreferencesViewModel: ObservableObject {
     init() {
         launchAtLoginEnabled = LaunchAtLoginController.isEnabled
         checkForUpdatesAtLaunch = UpdateSettings.checkForUpdatesAtLaunch
+        showInDock = DockIcon.isShown
         menuBarShowsAllMacs = MenuBarSettings.showsAllMacs
         menuBarMarksAllMacs = MenuBarSettings.marksAllMacs
         refreshText()

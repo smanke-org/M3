@@ -5,8 +5,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let eventMonitor = EventMonitor()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Menu bar only app, no Dock icon.
-        NSApp.setActivationPolicy(.accessory)
+        // A menu bar app; it has a Dock icon only if the user turned one on.
+        NSApp.setActivationPolicy(DockIcon.isShown ? .regular : .accessory)
+        NSApp.mainMenu = DockIcon.mainMenu(appName: AppInfo.shortName, target: self,
+                                           preferences: #selector(openPreferences))
 
         UpdateSettings.registerDefaults()
         MenuBarSettings.registerDefaults()
@@ -28,6 +30,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         CloudSync.shared.start()
 
         scheduleLaunchUpdateCheck()
+    }
+
+    /// The Dock icon's right-click menu, when "Show in Dock" is on.
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        DockIcon.menu(target: self, action: #selector(openPreferences))
+    }
+
+    /// Clicking the Dock icon, or opening the app again while it runs, opens
+    /// Preferences rather than doing nothing visible.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { openPreferences() }
+        return true
+    }
+
+    @objc func openPreferences() {
+        statusItemController?.openPreferences()
     }
 
     /// Looks for a newer release shortly after launch rather than during it,

@@ -218,6 +218,10 @@ struct PreferencesView: View {
                 .toggleStyle(.checkbox)
                 .help("Looks for a newer release on GitHub a few seconds after launch. You are only asked if there is one.")
 
+            Toggle("Show in Dock", isOn: $viewModel.showInDock)
+                .toggleStyle(.checkbox)
+                .help("Adds a Dock icon whose right-click menu opens Preferences. \(AppInfo.shortName) stays in the menu bar either way.")
+
 
             if let error = viewModel.launchAtLoginError {
                 Text(error)

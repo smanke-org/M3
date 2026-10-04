@@ -37,7 +37,9 @@ The app checks for updates on demand from the menu bar dropdown
 - The Preferences window shows current stats and has buttons to reset
   mileage, keystrokes, clicks, or everything — each asks for confirmation
   before clearing. It also has a "Launch at Login" checkbox, backed by
-  `SMAppService` (`LaunchAtLoginController.swift`).
+  `SMAppService` (`LaunchAtLoginController.swift`), and a "Show in Dock"
+  checkbox (off by default): with it on, the app also gets a Dock icon whose
+  right-click menu offers Preferences… (`DockIcon.swift`).
 
 ## Combined mileage across Macs
 

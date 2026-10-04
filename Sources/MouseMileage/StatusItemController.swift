@@ -160,7 +160,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         )
     }
 
-    @objc private func openPreferences() {
+    @objc func openPreferences() {
         preferencesController.show()
     }
 
