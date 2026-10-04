@@ -40,6 +40,9 @@ BUILD_MARKER=".build/build-start-marker"
 mkdir -p .build
 rm -f "${UNIVERSAL_BIN}"
 touch "${BUILD_MARKER}"
+# The freshness check compares whole seconds, and a no-op build can finish within
+# the second the marker was made; step past it so a fresh binary always reads newer.
+sleep 1
 
 swift build -c release --arch arm64 --arch x86_64
 
