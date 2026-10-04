@@ -85,8 +85,17 @@ else
   echo "WARNING: no Developer ID identity found; the image is unsigned."
 fi
 
+# A second copy under a name that never changes. The README's download link uses
+# GitHub's releases/latest/download/<name> redirect, which can only resolve against an
+# asset whose name is identical in every release. Copied after notarization so it
+# carries the same stapled ticket; it is byte-identical, so it does not matter which
+# one the updater picks up. Upload both to every release.
+STABLE_PATH=".build/app/M3Tracker.dmg"
+cp "${DMG_PATH}" "${STABLE_PATH}"
+
 echo
 echo "Verifying..."
 spctl -a -t open --context context:primary-signature -vv "${DMG_PATH}" 2>&1 || true
 ls -lh "${DMG_PATH}" | awk '{print "Size: "$5}'
 echo "Done: ${DMG_PATH}"
+echo "      ${STABLE_PATH} (same image, fixed name for the permanent download link)"

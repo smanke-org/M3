@@ -1,20 +1,41 @@
 # M3 Tracker: Mac Mouse Mileage Tracker
 
-A macOS menu bar app that tracks cumulative mouse/trackpad movement distance,
-keystrokes, and left/right click counts. Counters persist across restarts and
-reboots (stored via `UserDefaults`, which is backed by disk).
+**Shows how far your mouse really travels, plus your clicks, keystrokes and scrolling, on every Mac you use.**
 
-## Install
+You move a mouse or trackpad all day without any sense of how much. M3 Tracker is a small menu
+bar app that turns that into a number you can see: feet, then miles, of pointer travel. It
+also counts clicks and keystrokes and how far content scrolls, with charts by hour, day and
+year, a breakdown by app, and combined totals across all your Macs through iCloud Drive.
+It's a fun way to see your habits, and a useful one: you might find which app keeps your
+hand moving the most, or how far a mouse goes on one battery charge.
 
-[**Download the latest release**](https://github.com/smanke-org/M3/releases/latest)
-— a `.dmg` signed with a Developer ID certificate and notarized by Apple, so
-it opens cleanly with no Gatekeeper warning. Open the disk image, drag
-`M3 Tracker.app` to `/Applications`, and launch it. On first launch, grant
-Accessibility (Input Monitoring) access when macOS prompts — see
-[Required permission](#required-permission) below.
+---
 
-The app checks for updates on demand from the menu bar dropdown
-("Check for Updates…") — see [Auto-update](#auto-update) below.
+## ⬇️ Download
+
+<p align="center">
+  <a href="https://github.com/smanke-org/M3/releases/latest/download/M3Tracker.dmg">
+    <img src="https://img.shields.io/badge/Download-M3Tracker.dmg-2ea44f?style=for-the-badge&logo=apple&logoColor=white" alt="Download M3Tracker.dmg" height="48">
+  </a>
+</p>
+
+1. **[Download M3Tracker.dmg](https://github.com/smanke-org/M3/releases/latest/download/M3Tracker.dmg)**
+2. Open it and drag **M3 Tracker** to **Applications**.
+3. Open M3 Tracker. The distance appears in the menu bar right away.
+4. Grant **Accessibility** when macOS asks (System Settings › Privacy & Security ›
+   Accessibility). Mileage and clicks work without it, but keystrokes are only counted with
+   it. See [Required permission](#required-permission).
+
+Requires macOS 13 or later, Intel or Apple silicon. Signed with Developer ID and notarized by Apple.
+
+---
+
+## Updates
+
+M3 Tracker checks GitHub for a new release a few seconds after launch, and stays silent unless
+there is one. You can also choose **Check for Updates…** from the menu bar dropdown at any time.
+Nothing installs until you confirm it. Before installing, the download must be signed by the
+same developer and notarized by Apple. See [Auto-update](#auto-update) for details.
 
 ## How it works
 
@@ -309,7 +330,7 @@ counters, which is expected.
 2. `./release.sh "Developer ID Application: Your Name (TEAMID)"` — builds,
    signs, notarizes, and staples the `.app`.
 3. `./make_dmg.sh` — wraps the stapled app into a signed, notarized
-   `M3Tracker-<version>.dmg` at `.build/app/`.
+   `M3Tracker-<version>.dmg` at `.build/app/`, plus an identical `M3Tracker.dmg`.
 
 The image opens as a 600x400 window with 128px icons, the app on the left and Applications
 on the right. That layout ships as a captured `.DS_Store` (`Resources/dmg/DS_Store`) which
@@ -318,7 +339,8 @@ during a release; recapture it with `Tools/capture_dmg_layout.sh` if the window 
 There is no background picture: on macOS 27 Finder shows one only while it is dropped into
 the View Options picture well by hand and discards it when the window closes.
 4. Create a GitHub release tagged `v<version>` (matching the plist version)
-   at https://github.com/smanke-org/M3/releases/new and upload the `.dmg` as its
-   asset. `UpdateController` fetches whatever asset ends in `.dmg` from the
+   at https://github.com/smanke-org/M3/releases/new and upload **both** `.dmg` files.
+   The README's download button points at `releases/latest/download/M3Tracker.dmg`,
+   which only resolves if every release carries a file with exactly that name. `UpdateController` fetches whatever asset ends in `.dmg` from the
    **latest** release, so this is the step that actually makes an update
    available to installed copies of the app.
