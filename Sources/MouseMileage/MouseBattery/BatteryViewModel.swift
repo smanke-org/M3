@@ -145,7 +145,7 @@ final class BatteryViewModel: ObservableObject {
 
     static var statusMessage: [MouseBatteryMonitor.Status: String] {
         [
-            .needsPermission: "Needs Input Monitoring permission. Open Preferences › Battery.",
+            .needsPermission: "Needs Input Monitoring permission. Open Settings › Battery.",
             .needsRelaunch: "Quit and reopen M3 Tracker to finish turning this on.",
         ]
     }

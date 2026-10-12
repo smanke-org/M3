@@ -64,9 +64,6 @@ final class PreferencesViewModel: ObservableObject {
     }()
     @Published var launchAtLoginEnabled: Bool
     @Published var launchAtLoginError: String?
-    @Published var checkForUpdatesAtLaunch: Bool {
-        didSet { UpdateSettings.checkForUpdatesAtLaunch = checkForUpdatesAtLaunch }
-    }
     /// A Dock icon whose right-click menu opens Preferences. Off by default.
     @Published var showInDock: Bool {
         didSet {
@@ -100,7 +97,6 @@ final class PreferencesViewModel: ObservableObject {
 
     init() {
         launchAtLoginEnabled = LaunchAtLoginController.isEnabled
-        checkForUpdatesAtLaunch = UpdateSettings.checkForUpdatesAtLaunch
         showInDock = AppPresence.showInDock
         showInMenuBar = AppPresence.showInMenuBar
         menuBarShowsAllMacs = MenuBarSettings.showsAllMacs
@@ -187,9 +183,10 @@ final class PreferencesViewModel: ObservableObject {
         isAccessibilityTrusted = AXIsProcessTrusted()
         thisMacName = DeviceIdentity.deviceName
         refreshApps()
-        if checkForUpdatesAtLaunch != UpdateSettings.checkForUpdatesAtLaunch {
-            checkForUpdatesAtLaunch = UpdateSettings.checkForUpdatesAtLaunch
-        }
+        if showInDock != AppPresence.showInDock { showInDock = AppPresence.showInDock }
+        if showInMenuBar != AppPresence.showInMenuBar { showInMenuBar = AppPresence.showInMenuBar }
+        if menuBarMarksAllMacs != MenuBarSettings.marksAllMacs { menuBarMarksAllMacs = MenuBarSettings.marksAllMacs }
+        Task { @MainActor in AutoUpdater.shared.refreshNotificationStatus() }
         if menuBarShowsAllMacs != MenuBarSettings.showsAllMacs {
             menuBarShowsAllMacs = MenuBarSettings.showsAllMacs
         }

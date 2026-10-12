@@ -27,7 +27,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
     /// Held so its checkmark can be refreshed on open; the menu itself is
     /// built once because the charts item hosts a live SwiftUI view.
-    private var launchUpdateCheckItem: NSMenuItem?
+    private var policyMenu: NSMenu?
     /// Held for the same reason: its title changes once the launch check has
     /// found a release waiting.
     private var updateItem: NSMenuItem?
@@ -72,18 +72,23 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         installChartsViews()
 
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Preferences…", action: #selector(openPreferences), keyEquivalent: ",")
+        menu.addItem(withTitle: "Settings…", action: #selector(openPreferences), keyEquivalent: ",")
             .target = self
         let updateItem = menu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
         updateItem.target = self
         updateItem.toolTip = "Download and install the latest release from GitHub, then restart."
         self.updateItem = updateItem
 
-        let autoUpdateItem = menu.addItem(withTitle: "Check for Updates at Launch", action: #selector(toggleLaunchUpdateCheck), keyEquivalent: "")
-        autoUpdateItem.target = self
-        autoUpdateItem.state = UpdateSettings.checkForUpdatesAtLaunch ? .on : .off
-        autoUpdateItem.toolTip = "Look for a newer release shortly after the app opens. You are only asked if one is found."
-        launchUpdateCheckItem = autoUpdateItem
+        // Replaces the old "Check for Updates at Launch" switch: the same three choices as Settings.
+        let policyItem = menu.addItem(withTitle: "When an Update Is Available", action: nil, keyEquivalent: "")
+        let policyMenu = NSMenu()
+        for policy in UpdatePolicy.allCases {
+            let item = policyMenu.addItem(withTitle: policy.title, action: #selector(choosePolicy(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = policy.rawValue
+        }
+        policyItem.submenu = policyMenu
+        self.policyMenu = policyMenu
 
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit \(AppInfo.shortName)", action: #selector(quit), keyEquivalent: "q")
@@ -142,11 +147,16 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         // Opens with the last-known totals; the view model refreshes again when
         // this read of the other Macs' files lands.
         CloudSync.shared.refreshRemote()
-        launchUpdateCheckItem?.state = UpdateSettings.checkForUpdatesAtLaunch ? .on : .off
+        for item in policyMenu?.items ?? [] {
+            item.state = (item.representedObject as? String) == AutoUpdater.shared.policy.rawValue ? .on : .off
+        }
 
-        // A release found by the launch check is offered here rather than prompted
-        // for, so an install only ever follows a click the user made.
-        if let pending = UpdateAvailability.shared.pending {
+        // A release found by the background check is offered here rather than prompted
+        // for, unless the user chose automatic installs.
+        if let staged = AutoUpdater.shared.staged {
+            updateItem?.title = "Update to \(staged.version) Now (Otherwise Installs When Idle)"
+            updateItem?.toolTip = "Downloaded and verified. It installs by itself once your Mac isn't in use, or now if you click."
+        } else if let pending = UpdateAvailability.shared.pending {
             updateItem?.title = "Update to \(pending)…"
             updateItem?.toolTip = "A newer release is available. Downloading and installing it needs your confirmation."
         } else {
@@ -171,12 +181,18 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         preferencesController.show()
     }
 
-    @objc private func checkForUpdates() {
-        UpdateController.checkForUpdates()
+    @MainActor @objc private func checkForUpdates() {
+        if AutoUpdater.shared.staged != nil {
+            AutoUpdater.shared.installNow()
+        } else {
+            UpdateController.checkForUpdates()
+        }
     }
 
-    @objc private func toggleLaunchUpdateCheck() {
-        UpdateSettings.checkForUpdatesAtLaunch.toggle()
+    @MainActor @objc private func choosePolicy(_ sender: NSMenuItem) {
+        if let raw = sender.representedObject as? String, let policy = UpdatePolicy(rawValue: raw) {
+            AutoUpdater.shared.policy = policy
+        }
     }
 
     @objc private func quit() {

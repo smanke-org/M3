@@ -5,9 +5,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let eventMonitor = EventMonitor()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Read before anything starts counting: MetricsStore records when tracking began
+        // on the very first launch, so its absence means a brand-new install.
+        let newInstall = UserDefaults.standard.object(forKey: "trackingStartedAt") == nil
+
         // A menu bar app; it has a Dock icon only if the user turned one on.
         NSApp.setActivationPolicy(AppPresence.showInDock ? .regular : .accessory)
-        NSApp.mainMenu = AppPresence.mainMenu(appName: AppInfo.shortName, settingsTitle: "Preferences…",
+        NSApp.mainMenu = AppPresence.mainMenu(appName: AppInfo.shortName, settingsTitle: "Settings…",
                                               target: self, settings: #selector(openPreferences))
 
         UpdateSettings.registerDefaults()
@@ -29,12 +33,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Shares this Mac's totals with the user's other Macs via iCloud Drive.
         CloudSync.shared.start()
 
-        scheduleLaunchUpdateCheck()
+        // Settings sync (separate from the totals): a new Mac picks up the user's settings.
+        if newInstall { SettingsSync.shared.adoptOnNewInstall() }
+        SettingsSync.shared.start()
+
+        AutoUpdater.shared.start()
     }
 
     /// The Dock icon's right-click menu, when "Show in Dock" is on.
     func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
-        AppPresence.dockMenu(title: "Preferences…", target: self, action: #selector(openPreferences))
+        AppPresence.dockMenu(title: "Settings…", target: self, action: #selector(openPreferences))
     }
 
     /// Clicking the Dock icon, or opening the app again from Applications or
@@ -46,16 +54,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func openPreferences() {
         statusItemController?.openPreferences()
-    }
-
-    /// Looks for a newer release shortly after launch rather than during it,
-    /// so startup isn't waiting on the network. Silent unless there is
-    /// something to offer.
-    private func scheduleLaunchUpdateCheck() {
-        guard UpdateSettings.checkForUpdatesAtLaunch else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-            UpdateController.checkForUpdates(silent: true)
-        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

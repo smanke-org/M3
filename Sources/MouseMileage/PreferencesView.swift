@@ -17,6 +17,8 @@ struct PreferencesView: View {
                 .tabItem { Label("Apps", systemImage: "square.grid.2x2") }
             page { BatteryPreferencesView(viewModel: batteryViewModel) }
                 .tabItem { Label("Battery", systemImage: "battery.75") }
+            page { SyncAndUpdatesView() }
+                .tabItem { Label("Sync & Updates", systemImage: "arrow.triangle.2.circlepath") }
         }
         .padding(12)
         .frame(width: 500)
@@ -214,19 +216,15 @@ struct PreferencesView: View {
             ))
             .toggleStyle(.checkbox)
 
-            Toggle("Check for updates when the app opens", isOn: $viewModel.checkForUpdatesAtLaunch)
-                .toggleStyle(.checkbox)
-                .help("Looks for a newer release on GitHub a few seconds after launch. You are only asked if there is one.")
-
             Toggle("Show in Dock", isOn: $viewModel.showInDock)
                 .toggleStyle(.checkbox)
-                .help("Adds a Dock icon whose right-click menu opens Preferences.")
+                .help("Adds a Dock icon whose right-click menu opens Settings.")
 
             Toggle("Show in menu bar", isOn: $viewModel.showInMenuBar)
                 .toggleStyle(.checkbox)
 
             if !viewModel.showInDock && !viewModel.showInMenuBar {
-                Text(AppPresence.hiddenEverywhereNote(appName: AppInfo.shortName, settingsName: "Preferences"))
+                Text(AppPresence.hiddenEverywhereNote(appName: AppInfo.shortName, settingsName: "Settings"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -323,6 +321,89 @@ struct PreferencesView: View {
         alert.alertStyle = .warning
         if alert.runModal() == .alertFirstButtonReturn {
             action()
+        }
+    }
+}
+
+/// Settings sync across Macs and how updates arrive.
+struct SyncAndUpdatesView: View {
+    @ObservedObject private var sync = SettingsSync.shared
+    @ObservedObject private var updater = AutoUpdater.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("iCloud").font(.headline)
+                Toggle("Sync settings with your other Macs", isOn: $sync.isEnabled)
+                    .toggleStyle(.checkbox)
+                if sync.isEnabled {
+                    HStack {
+                        if let error = sync.lastError {
+                            Text(error).foregroundStyle(.red)
+                        } else if let date = sync.lastSynced {
+                            Text("Synced \(date.formatted(date: .omitted, time: .shortened))\(sync.lastSource.map { $0 == DeviceIdentity.deviceName ? "" : " from \($0)" } ?? "")")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Waiting for iCloud Drive…").foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Sync Now") { sync.syncNow() }
+                    }
+                    .font(.callout)
+                }
+                Text("Menu bar, menu card and app list choices, low-battery warnings, where M3 appears, and how updates arrive follow you to every Mac signed in to the same iCloud account with sync turned on. Your mileage syncs separately, and open at login and battery tracking stay separate on each Mac.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Updates").font(.headline)
+                Picker("When an update is available:", selection: $updater.policy) {
+                    ForEach(UpdatePolicy.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.radioGroup)
+                if let staged = updater.staged {
+                    HStack {
+                        Text("Version \(staged.version) is ready.")
+                        Spacer()
+                        Button("Install Now") { updater.installNow() }
+                    }
+                }
+                HStack {
+                    Text("Version \(AppInfo.version)").foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Check Now") { UpdateController.checkForUpdates() }
+                }
+                if let error = updater.lastError {
+                    Text(error).font(.callout).foregroundStyle(.red)
+                }
+                if updater.policy != .off && !updater.notificationsAllowed {
+                    HStack(alignment: .top) {
+                        Label("Notifications are off for M3 Tracker, so update news only shows in the menu.", systemImage: "bell.slash")
+                            .foregroundStyle(.orange)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer()
+                        Button("Open Notification Settings") { AutoUpdater.openNotificationSettings() }
+                    }
+                    .font(.callout)
+                }
+                Text(footer).font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .onAppear { updater.refreshNotificationStatus() }
+    }
+
+    private var footer: String {
+        switch updater.policy {
+        case .automatic:
+            return "M3 checks every 30 minutes. A new version installs itself when no app is presenting or keeping the screen awake and your Mac hasn't been used for 2 minutes. Your counts are saved first, and you'll get a notification when it's done."
+        case .ask:
+            return "M3 checks every 30 minutes and sends a notification when a new version is out. Nothing installs until you choose to."
+        case .off:
+            return "M3 won't look for updates on its own. Use Check Now whenever you like."
         }
     }
 }

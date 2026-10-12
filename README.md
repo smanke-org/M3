@@ -54,25 +54,25 @@ same developer and notarized by Apple. See [Auto-update](#auto-update) for detai
 - The menu bar shows feet (to the tenths place) while under a mile, then
   switches to miles (to the hundredths place).
 - Clicking the menu bar item shows mileage charts (Today by Hour, By Day,
-  Year to Date) using Swift Charts, plus Preferences and Quit.
-- The Preferences window shows current stats and has buttons to reset
+  Year to Date) using Swift Charts, plus Settings and Quit.
+- The Settings window shows current stats and has buttons to reset
   mileage, keystrokes, clicks, or everything — each asks for confirmation
   before clearing. It also has a "Launch at Login" checkbox, backed by
   `SMAppService` (`LaunchAtLoginController.swift`), plus "Show in Dock" (off
   by default) and "Show in menu bar" (on) checkboxes, in any combination
-  (`AppPresence.swift`). The Dock icon's right-click menu offers Preferences…;
-  with both off, opening the app again from Applications opens Preferences.
+  (`AppPresence.swift`). The Dock icon's right-click menu offers Settings…;
+  with both off, opening the app again from Applications opens Settings.
 
 ## Combined mileage across Macs
 
 Every Mac signed in to the same Apple Account shares its totals through iCloud
 Drive, so each one can show **This Mac** and **All Macs** side by side. The
 dropdown shows both, and its charts combine every Mac. The menu bar title shows
-this Mac by default; Preferences › "Menu bar shows" switches it to All Macs
+this Mac by default; Settings › "Menu bar shows" switches it to All Macs
 (falling back to this Mac while iCloud Drive is off, rather than showing other
 Macs' totals that are no longer being kept current). An All Macs title is
 prefixed with Σ so it can't be mistaken for this Mac's figure; that marker can
-be turned off in Preferences, and never appears on the fallback. Preferences
+be turned off in Settings, and never appears on the fallback. Settings
 also lists each
 Mac with its mileage and when it last synced.
 
@@ -103,7 +103,7 @@ iCloud Drive/M3 Tracker/Devices/<device id>.json
   their own counts.
 - **Retiring a Mac:** its file keeps counting, since those miles happened.
   Delete its file from `iCloud Drive/M3 Tracker/Devices` to remove it — the
-  name shown in Preferences identifies which Mac is which.
+  name shown in Settings identifies which Mac is which.
 - **Evicted files:** if iCloud Drive offloads a file to save space, the app asks
   for it back and keeps using the last-known totals meanwhile.
 
@@ -130,7 +130,7 @@ kept separate from pointer mileage and never added into it.
   up once at the start of each scroll gesture.
 - It shows as **Scrolled This Mac** and **Scrolled All Macs** rows in the menu
   totals, under **Moved This Mac** and **Moved All Macs**, a second **orange line on every chart**, a sortable **Scroll**
-  column in Preferences › Apps, and a line in Preferences › General with its own
+  column in Settings › Apps, and a line in Settings › General with its own
   reset. It syncs across Macs like everything else.
 
 ## Troubleshooting another Mac
@@ -152,7 +152,7 @@ window switches between the three charts and keeps updating while it's open.
 The dropdown always starts with the This Mac / All Macs totals. Beneath them,
 each card (Top Apps, Mileage per Charge, Today by Hour, By Day and Year to Date)
 can go in the menu, in the **More Charts ▸** flyout, in both, or in neither.
-They're set in Preferences › **Menu**. By default the menu holds only Today by
+They're set in Settings › **Menu**. By default the menu holds only Today by
 Hour and the flyout holds everything, so the menu fits a laptop screen without
 scrolling. The flyout lays out four or more cards in two columns. Both views are
 measured when they're built, so they are rebuilt whenever the choice changes.
@@ -168,7 +168,7 @@ window still counts toward the app you're working in.
   rest rolled into "N others", for **Today**, **7 Days**, or **All** time. The card
   is a fixed height, because the menu's SwiftUI view is measured once when the
   menu is built and a growing card would be clipped.
-- Preferences › **Apps** lists every app with its distance, clicks, and keystrokes.
+- Settings › **Apps** lists every app with its distance, clicks, and keystrokes.
 - The focused app is cached from `NSWorkspace` activation notifications, never
   looked up per event, since crediting happens on every mouse move. No extra
   permission is needed.
@@ -181,7 +181,7 @@ window still counts toward the app you're working in.
 
 ## Mileage per battery charge
 
-An optional tracker, off until turned on in Preferences › **Battery**, for how far
+An optional tracker, off until turned on in Settings › **Battery**, for how far
 a mouse travels on one charge, and whether that is rising or falling over time.
 It is kept apart from the main mileage and the per-app numbers: its reset touches
 nothing else, and theirs don't touch it.
@@ -212,11 +212,11 @@ nothing else, and theirs don't touch it.
   "Logitech MX Master 4". It's a floating card in the style of NetworkToggle's
   panel: it doesn't take focus, and a click anywhere on it dismisses it. It's
   shown once per discharge and comes back only after the mouse has been charged.
-  It can be turned off, or previewed, in Preferences › Battery.
-- The menu gets a **Mileage per Charge** card, and Preferences › **Battery** has
+  It can be turned off, or previewed, in Settings › Battery.
+- The menu gets a **Mileage per Charge** card, and Settings › **Battery** has
   the chart and the list of charges.
 - **Telling identical mice apart:** click the pencil next to a mouse's name in
-  Preferences › Battery to rename it. The name syncs to all your Macs. Until
+  Settings › Battery to rename it. The name syncs to all your Macs. Until
   it's renamed, a mouse that shares its model name with another gets the end
   of its serial number, as in "MX Master 4 · BR48". The serial is printed
   under the mouse.
@@ -236,13 +236,28 @@ the **same Developer ID Team ID** as the running app, and a passing Gatekeeper
 assessment (i.e. Apple notarized it) — any failure aborts the update and
 leaves the installed app untouched.
 
-The same check runs a few seconds after launch when "Check for Updates at
-Launch" is on (the menu bar toggle, or the checkbox in Preferences),
-deliberately silent unless there is something to offer — reporting "up to
-date", or a failed network call, on every single launch would be noise rather
-than information. Declining an update offers "Skip This Version", which stops
-the launch check raising that version again; checking manually still offers
-it.
+M3 also checks on its own a few seconds after launch and every 30 minutes.
+Settings › **Sync & Updates** (or "When an Update Is Available" in the menu)
+decides what happens when it finds one:
+
+- **Ask me first** (the default): a notification and an "Update to …" menu
+  item; nothing installs until you confirm. Declining offers "Skip This
+  Version", which stops the background check raising that version again.
+- **Install automatically**: the update is downloaded and verified straight
+  away, then installed once no app is presenting or keeping the display awake
+  and the Mac hasn't been used for 2 minutes. Counts are saved before the
+  restart, and a notification says when it's done.
+- **Don't check**: Check for Updates still works.
+
+### Settings sync
+
+With "Sync settings with your other Macs" on (Settings › Sync & Updates), your
+menu bar, menu card and app list choices, low-battery warning, where M3
+appears, and update choice follow you to every Mac on the same iCloud account,
+through `iCloud Drive/M3 Tracker/Settings.plist`. Mileage syncs separately, as
+before. Open at login and battery tracking (which needs Input Monitoring on
+each Mac) stay per Mac. A brand-new install that finds this file turns sync on
+and starts from your settings instead of the defaults.
 
 The swap itself is handed to a detached shell script, because an app cannot
 replace and relaunch its own bundle while it is the one running: the script
@@ -264,7 +279,7 @@ error of any kind. The app therefore looks like it is working: mileage and
 click counts climb normally while the keystroke count sits at zero forever.
 
 Because that failure is invisible, `EventMonitor` tracks trust explicitly.
-Preferences shows a warning with a button straight to the Accessibility
+Settings shows a warning with a button straight to the Accessibility
 settings when the app isn't trusted, the state is logged at launch, and the
 monitors are re-registered if trust is granted while the app is running —
 a monitor registered before trust was granted does not start receiving key
@@ -273,7 +288,7 @@ events on its own.
 **Input Monitoring** is needed only for mileage per battery charge, and is only
 requested when that is turned on. Opening a mouse's HID device (to read its
 battery, and its motion) fails with `kIOReturnNotPermitted` without it. macOS
-may apply a new grant only after the app relaunches, and Preferences says so
+may apply a new grant only after the app relaunches, and Settings says so
 when that happens.
 
 ## Running during development
@@ -310,7 +325,7 @@ open "/Applications/M3 Tracker.app"
 ```
 
 To survive reboots automatically, use the in-app "Launch at Login" checkbox
-in Preferences (backed by `SMAppService.mainApp`, macOS 13+) once the app is
+in Settings (backed by `SMAppService.mainApp`, macOS 13+) once the app is
 installed in `/Applications`, or add it manually as a Login Item in
 **System Settings → General → Login Items**. `SMAppService` registration only
 works from a properly installed `.app` bundle — running via `swift run` will

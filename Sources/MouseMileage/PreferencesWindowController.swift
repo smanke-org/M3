@@ -24,7 +24,7 @@ final class PreferencesWindowController: NSObject, NSWindowDelegate {
         hostingController.sizingOptions = [.preferredContentSize]
 
         let window = NSWindow(contentViewController: hostingController)
-        window.title = "\(AppInfo.shortName) Preferences"
+        window.title = "\(AppInfo.shortName) Settings"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.delegate = self
