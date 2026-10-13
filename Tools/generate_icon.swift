@@ -99,20 +99,7 @@ ctx.restoreGState()
 
 // "M" with a superscript "3", treated as one unit so it centres properly.
 // Without the name below it, the symbol grows and recentres to fill the tile.
-let symbolSize = side * (includeName ? 0.52 : 0.62)
-let superscriptSize = symbolSize * 0.40
-let mSize = size(of: "M", size: symbolSize)
-let threeSize = size(of: "3", size: superscriptSize)
-
-let symbolWidth = mSize.width + threeSize.width * 0.85
-let symbolX = tile.midX - symbolWidth / 2
-let symbolY = tile.minY + side * (includeName ? 0.28 : 0.20)
-
-draw("M", size: symbolSize, at: CGPoint(x: symbolX, y: symbolY))
-draw("3", size: superscriptSize, at: CGPoint(
-    x: symbolX + mSize.width - threeSize.width * 0.12,
-    y: symbolY + mSize.height * 0.44
-))
+drawSymbol("M", in: tile, includeName: includeName, ctx: ctx, superscript: "3")
 
 // Name along the bottom.
 if includeName {
@@ -128,6 +115,57 @@ if includeName {
 image.unlockFocus()
 return image
 }
+
+// MARK: - Element symbol (shared rule across every app's icon)
+
+/// Draws the element symbol at the same visual size in every app's icon, matched to
+/// Migraine Tracker's "Mt": capitals 43.5% of the tile tall, baseline 29% of the way up.
+/// A wide symbol shrinks only as far as needed to stay within 66% of the tile's width.
+/// Without the name (the 16-64pt variant) it grows a little and sits just below center,
+/// clear of the 27.
+func drawSymbol(_ symbol: String, in tile: CGRect, includeName: Bool, ctx: CGContext,
+                superscript: String? = nil) {
+    let side = tile.width
+    let capTarget = side * (includeName ? 0.435 : 0.46)
+    let maxWidth = side * (includeName ? 0.66 : 0.70)
+    func font(_ size: CGFloat) -> NSFont { NSFont.systemFont(ofSize: size, weight: .bold) }
+    func line(_ text: String, _ size: CGFloat) -> CTLine {
+        CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [
+            .font: font(size), .foregroundColor: NSColor.black,
+        ]))
+    }
+    func ink(_ text: String, _ size: CGFloat) -> CGRect {
+        ctx.textPosition = .zero
+        return CTLineGetImageBounds(line(text, size), ctx)
+    }
+    // A superscript (M3 Tracker's "³") rides at 40% of the symbol's size, top-aligned with it.
+    func totalWidth(_ size: CGFloat) -> CGFloat {
+        let main = ink(symbol, size)
+        guard let superscript else { return main.width }
+        return main.maxX - main.minX + ink(superscript, size * 0.40).width + size * 0.02
+    }
+    let reference: CGFloat = 100
+    let size = min(capTarget / font(reference).capHeight * reference,
+                   maxWidth / totalWidth(reference) * reference)
+    let capHeight = font(size).capHeight
+    let main = ink(symbol, size)
+    let x = tile.midX - totalWidth(size) / 2 - main.minX
+    let baseline = includeName ? tile.minY + side * 0.29 : tile.midY - capHeight / 2 - side * 0.07
+
+    ctx.saveGState()
+    ctx.textMatrix = .identity
+    ctx.textPosition = CGPoint(x: x, y: baseline)
+    CTLineDraw(line(symbol, size), ctx)
+    if let superscript {
+        let small = size * 0.40
+        let supInk = ink(superscript, small)
+        ctx.textPosition = CGPoint(x: x + main.maxX + size * 0.02 - supInk.minX,
+                                   y: baseline + capHeight - supInk.maxY)
+        CTLineDraw(line(superscript, small), ctx)
+    }
+    ctx.restoreGState()
+}
+
 
 // MARK: - Write PNGs
 
