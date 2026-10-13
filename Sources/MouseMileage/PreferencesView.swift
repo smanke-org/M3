@@ -9,7 +9,7 @@ struct PreferencesView: View {
     // well would be taller than a laptop screen.
     var body: some View {
         TabView {
-            general
+            ScrollView { general }
                 .tabItem { Label("General", systemImage: "gearshape") }
             page { menuSection }
                 .tabItem { Label("Menu", systemImage: "menubar.rectangle") }
@@ -22,15 +22,19 @@ struct PreferencesView: View {
         }
         .padding(12)
         .frame(width: 500)
+        .frame(maxHeight: .infinity)
     }
 
+    // Each tab scrolls when the window, which is capped to the screen, is shorter than it.
     private func page<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content()
-            Spacer(minLength: 0)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                content()
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private var general: some View {

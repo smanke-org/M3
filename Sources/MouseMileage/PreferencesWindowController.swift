@@ -19,13 +19,22 @@ final class PreferencesWindowController: NSObject, NSWindowDelegate {
     }
 
     private func makeWindow() -> NSWindow {
-        let hostingController = NSHostingController(rootView: PreferencesView(viewModel: viewModel, batteryViewModel: batteryViewModel))
-        // The window follows each tab's height.
-        hostingController.sizingOptions = [.preferredContentSize]
+        let view = PreferencesView(viewModel: viewModel, batteryViewModel: batteryViewModel)
+        // The General tab's natural height, capped to the screen, with each tab scrolling
+        // inside. Letting SwiftUI size the window to the content's full height crashed once
+        // it grew taller than the screen: AppKit clamped the window, SwiftUI asked to grow
+        // again, and AppKit aborted the update-constraints loop.
+        let natural = NSHostingView(rootView: view).fittingSize.height
+        let hostingController = NSHostingController(rootView: view)
+        hostingController.sizingOptions = []
 
         let window = NSWindow(contentViewController: hostingController)
         window.title = "\(AppInfo.shortName) Settings"
-        window.styleMask = [.titled, .closable]
+        window.styleMask = [.titled, .closable, .resizable]
+        let available = (NSScreen.main?.visibleFrame.height ?? 800) - 80
+        window.setContentSize(NSSize(width: 500, height: min(max(natural, 400), available)))
+        window.contentMinSize = NSSize(width: 500, height: 400)
+        window.contentMaxSize = NSSize(width: 500, height: CGFloat.greatestFiniteMagnitude)
         window.isReleasedWhenClosed = false
         window.delegate = self
         return window
