@@ -1,40 +1,72 @@
 import AppKit
 import SwiftUI
 
+/// The Settings tabs, so the window can be sized to the one showing.
+enum PreferencesTab: Hashable, CaseIterable {
+    case general, menu, apps, battery, sync
+}
+
+/// Which tab is showing; the window controller follows it to resize the window.
+final class PreferencesTabState: ObservableObject {
+    @Published var tab: PreferencesTab = .general
+}
+
 struct PreferencesView: View {
     @ObservedObject var viewModel: PreferencesViewModel
     @ObservedObject var batteryViewModel: BatteryViewModel
+    @ObservedObject var tabState: PreferencesTabState
 
     // Tabs, because one page holding the apps list and the charge chart as
     // well would be taller than a laptop screen.
     var body: some View {
-        TabView {
-            ScrollView { general }
-                .tabItem { Label("General", systemImage: "gearshape") }
-            page { menuSection }
-                .tabItem { Label("Menu", systemImage: "menubar.rectangle") }
-            page { appsSection }
-                .tabItem { Label("Apps", systemImage: "square.grid.2x2") }
-            page { BatteryPreferencesView(viewModel: batteryViewModel) }
-                .tabItem { Label("Battery", systemImage: "battery.75") }
-            page { SyncAndUpdatesView() }
-                .tabItem { Label("Sync & Updates", systemImage: "arrow.triangle.2.circlepath") }
+        TabView(selection: $tabState.tab) {
+            ForEach(PreferencesTab.allCases, id: \.self) { tab in
+                // Each tab scrolls when the window, which is capped to the screen, is shorter than it.
+                ScrollView { content(tab) }
+                    .tabItem { label(tab) }
+                    .tag(tab)
+            }
         }
         .padding(12)
         .frame(width: 500)
         .frame(maxHeight: .infinity)
     }
 
-    // Each tab scrolls when the window, which is capped to the screen, is shorter than it.
-    private func page<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                content()
-                Spacer(minLength: 0)
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+    /// One tab on its own, without scrolling, for measuring its natural height. A
+    /// one-tab TabView has the same tab bar and padding as the real one.
+    func measuring(_ tab: PreferencesTab) -> some View {
+        TabView { content(tab).tabItem { label(tab) } }
+            .padding(12)
+            .frame(width: 500)
+    }
+
+    @ViewBuilder
+    private func content(_ tab: PreferencesTab) -> some View {
+        switch tab {
+        case .general: general
+        case .menu: page { menuSection }
+        case .apps: page { appsSection }
+        case .battery: page { BatteryPreferencesView(viewModel: batteryViewModel) }
+        case .sync: page { SyncAndUpdatesView() }
         }
+    }
+
+    private func label(_ tab: PreferencesTab) -> Label<Text, Image> {
+        switch tab {
+        case .general: Label("General", systemImage: "gearshape")
+        case .menu: Label("Menu", systemImage: "menubar.rectangle")
+        case .apps: Label("Apps", systemImage: "square.grid.2x2")
+        case .battery: Label("Battery", systemImage: "battery.75")
+        case .sync: Label("Sync & Updates", systemImage: "arrow.triangle.2.circlepath")
+        }
+    }
+
+    private func page<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private var general: some View {
