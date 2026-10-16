@@ -89,6 +89,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
         policyItem.submenu = policyMenu
         self.policyMenu = policyMenu
+        menu.addItem(withTitle: "About \(AppInfo.shortName)", action: #selector(showAbout), keyEquivalent: "")
+            .target = self
+        menu.addItem(withTitle: "Our other apps…", action: #selector(showOtherApps), keyEquivalent: "")
+            .target = self
 
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit \(AppInfo.shortName)", action: #selector(quit), keyEquivalent: "q")
@@ -197,5 +201,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func quit() {
         NSApp.terminate(nil)
+    }
+
+    @objc private func showAbout() {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(nil)
+    }
+    /// The developer's site, which lists every app.
+    @objc private func showOtherApps() {
+        if let url = URL(string: "https://stevemanke.com/") { NSWorkspace.shared.open(url) }
     }
 }
