@@ -11,8 +11,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // A menu bar app; it has a Dock icon only if the user turned one on.
         NSApp.setActivationPolicy(AppPresence.showInDock ? .regular : .accessory)
-        NSApp.mainMenu = AppPresence.mainMenu(appName: AppInfo.shortName, settingsTitle: "Settings…",
-                                              target: self, settings: #selector(openPreferences))
+        let mainMenu = AppPresence.mainMenu(appName: AppInfo.shortName, settingsTitle: "Settings…",
+                                            target: self, settings: #selector(openPreferences))
+        // Right below About in the app menu.
+        let otherApps = NSMenuItem(title: "Our other apps…", action: #selector(showOtherApps), keyEquivalent: "")
+        otherApps.target = self
+        mainMenu.items.first?.submenu?.insertItem(otherApps, at: 1)
+        NSApp.mainMenu = mainMenu
 
         UpdateSettings.registerDefaults()
         MenuBarSettings.registerDefaults()
@@ -54,6 +59,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func openPreferences() {
         statusItemController?.openPreferences()
+    }
+
+    /// The developer's site, which lists every app.
+    @objc func showOtherApps() {
+        if let url = URL(string: "https://stevemanke.com/") { NSWorkspace.shared.open(url) }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
