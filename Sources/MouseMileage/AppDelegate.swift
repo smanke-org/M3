@@ -61,6 +61,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItemController?.openPreferences()
     }
 
+    /// `m3tracker://today`, `by-day` and `year` (from ToolHUD, Shortcuts or a script) open
+    /// that chart in its window; `m3tracker://settings` opens Settings.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where url.scheme == "m3tracker" {
+            switch url.host {
+            case "today": statusItemController?.showChart(.todayByHour)
+            case "by-day": statusItemController?.showChart(.byDay)
+            case "year": statusItemController?.showChart(.yearToDate)
+            default: openPreferences()
+            }
+        }
+    }
+
     /// The developer's site, which lists every app.
     @objc func showOtherApps() {
         if let url = URL(string: "https://stevemanke.com/") { NSWorkspace.shared.open(url) }
