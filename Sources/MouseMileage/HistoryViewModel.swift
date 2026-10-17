@@ -74,23 +74,23 @@ final class HistoryViewModel: ObservableObject {
         scrollByDay = scroll.last7Days(from: scrollDaily)
         scrollYearToDate = scroll.yearToDate(from: scrollDaily)
 
-        scrolledThisMacText = MetricsStore.distanceText(forPoints: MetricsStore.shared.scrollPoints)
+        scrolledThisMacText = MetricsStore.distanceText(forPoints: MetricsStore.shared.scrollPoints, fine: true)
         // Always a row, like Moved All Macs: the menu's height is measured
         // once, so a row that appeared later would be clipped.
         // The same Mac count as Moved All Macs, from the same source, so the
         // two rows can't disagree.
         scrolledAllMacsText = sync.isAvailable
-            ? "\(MetricsStore.distanceText(forPoints: sync.allMacsScrollPoints)) · \(Self.macCountText(sync.macCount))"
+            ? "\(MetricsStore.distanceText(forPoints: sync.allMacsScrollPoints, fine: true)) · \(Self.macCountText(sync.macCount))"
             : "iCloud Drive is off"
 
-        thisMacText = MetricsStore.distanceText(forPoints: MetricsStore.shared.totalPoints)
+        thisMacText = MetricsStore.distanceText(forPoints: MetricsStore.shared.totalPoints, fine: true)
 
         if !sync.isAvailable {
             allMacsText = "iCloud Drive is off"
             chartsScopeText = "Apps and charts: this Mac only (iCloud Drive is off)"
         } else {
             let macs = Self.macCountText(sync.macCount)
-            allMacsText = "\(MetricsStore.distanceText(forPoints: sync.allMacsPoints)) · \(macs)"
+            allMacsText = "\(MetricsStore.distanceText(forPoints: sync.allMacsPoints, fine: true)) · \(macs)"
             chartsScopeText = sync.macCount == 1 ? "Apps and charts: this Mac (no other Macs synced yet)" : "Apps and charts: all \(macs) combined"
         }
 

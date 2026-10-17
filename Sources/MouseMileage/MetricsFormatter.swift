@@ -16,6 +16,7 @@ enum MetricsFormatter {
     private static let whole = makeFormatter(fractionDigits: 0)
     private static let oneDecimal = makeFormatter(fractionDigits: 1)
     private static let twoDecimals = makeFormatter(fractionDigits: 2)
+    private static let threeDecimals = makeFormatter(fractionDigits: 3)
 
     /// Whole counts: keystrokes, clicks.
     static func count(_ value: Int) -> String {
@@ -30,5 +31,10 @@ enum MetricsFormatter {
     /// Hundredths, as miles are shown.
     static func hundredths(_ value: Double) -> String {
         twoDecimals.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
+    }
+
+    /// Thousandths, as the menu's live totals show miles.
+    static func thousandths(_ value: Double) -> String {
+        threeDecimals.string(from: NSNumber(value: value)) ?? String(format: "%.3f", value)
     }
 }

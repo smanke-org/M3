@@ -165,11 +165,16 @@ final class MetricsStore {
 
     /// Points travelled → display text. Shared by this Mac's total and the All
     /// Macs total so both follow the same feet-under-a-mile rule.
-    static func distanceText(forPoints points: Double) -> String {
+    /// `fine` gives miles to thousandths (about 5 ft) instead of hundredths
+    /// (about 53 ft), for the menu's totals, which refresh live while open:
+    /// at hundredths they looked frozen next to Top Apps' tenths of a foot.
+    static func distanceText(forPoints points: Double, fine: Bool = false) -> String {
         let feet = points / 72.0 / 12.0
         let miles = feet / 5280.0
         if miles < 1.0 {
             return "\(MetricsFormatter.tenths(feet)) ft"
+        } else if fine {
+            return "\(MetricsFormatter.thousandths(miles)) mi"
         } else {
             return "\(MetricsFormatter.hundredths(miles)) mi"
         }
