@@ -207,6 +207,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         preferencesController.show()
     }
 
+    /// Opens a chart in its window, as clicking it in the menu does.
+    func showChart(_ card: MenuCard) {
+        chartWindow.show(card)
+    }
+
     @MainActor @objc private func checkForUpdates() {
         if AutoUpdater.shared.staged != nil {
             AutoUpdater.shared.installNow()

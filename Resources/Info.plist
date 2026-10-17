@@ -16,6 +16,17 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.15.25</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>M3 Tracker</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>m3tracker</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>1.15.25</string>
 	<key>LSMinimumSystemVersion</key>
@@ -24,5 +35,56 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Personal use</string>
+	<key>ToolHUDActions</key>
+	<array>
+		<dict>
+			<key>activates</key>
+			<true/>
+			<key>id</key>
+			<string>today</string>
+			<key>shortTitle</key>
+			<string>Today's mileage</string>
+			<key>symbol</key>
+			<string>chart.bar</string>
+			<key>title</key>
+			<string>Show today's mileage by hour</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<true/>
+			<key>id</key>
+			<string>by-day</string>
+			<key>shortTitle</key>
+			<string>Mileage by day</string>
+			<key>symbol</key>
+			<string>calendar</string>
+			<key>title</key>
+			<string>Show mileage by day</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<true/>
+			<key>id</key>
+			<string>year</string>
+			<key>shortTitle</key>
+			<string>Year to date</string>
+			<key>symbol</key>
+			<string>chart.line.uptrend.xyaxis</string>
+			<key>title</key>
+			<string>Show this year's mileage</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<true/>
+			<key>id</key>
+			<string>settings</string>
+			<key>shortTitle</key>
+			<string>M3 settings</string>
+			<key>symbol</key>
+			<string>gearshape</string>
+			<key>title</key>
+			<string>Open M3 Tracker settings</string>
+		</dict>
+	</array>
 </dict>
 </plist>
