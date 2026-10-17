@@ -31,6 +31,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// Held for the same reason: its title changes once the launch check has
     /// found a release waiting.
     private var updateItem: NSMenuItem?
+    /// Refreshes the open menu's totals and charts. Its view model otherwise
+    /// only refreshes when the menu opens, so the numbers sat still while it
+    /// was showing. Runs in `.common` modes, since a plain scheduled timer
+    /// doesn't fire while a menu is tracking.
+    private var openMenuTimer: Timer?
 
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -145,6 +150,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         // Opening the flyout only refreshes its data; its view was built, and
         // the rest of the menu updated, when the main menu opened.
         guard menu !== flyoutMenu else { return }
+        startOpenMenuTimer()
         if builtLayout != Layout.current {
             installChartsViews()
         }
@@ -167,6 +173,22 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             updateItem?.title = "Check for Updates…"
             updateItem?.toolTip = "Download and install the latest release from GitHub, then restart."
         }
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        guard menu !== flyoutMenu else { return }
+        openMenuTimer?.invalidate()
+        openMenuTimer = nil
+    }
+
+    private func startOpenMenuTimer() {
+        openMenuTimer?.invalidate()
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.historyViewModel.refresh()
+            self?.batteryViewModel.refresh()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        openMenuTimer = timer
     }
 
     /// Runs on every mouse move, so it only sums a handful of cached totals.
