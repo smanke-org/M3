@@ -400,6 +400,9 @@ struct SyncAndUpdatesView: View {
                     ForEach(UpdatePolicy.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.radioGroup)
+                if updater.policy != .off {
+                    UpdateIntervalPicker(interval: $updater.interval, label: "Check every:")
+                }
                 if let staged = updater.staged {
                     HStack {
                         Text("Version \(staged.version) is ready.")
@@ -435,9 +438,9 @@ struct SyncAndUpdatesView: View {
     private var footer: String {
         switch updater.policy {
         case .automatic:
-            return "M3 checks every 30 minutes. A new version installs itself when no app is presenting or keeping the screen awake and your Mac hasn't been used for 2 minutes. Your counts are saved first, and you'll get a notification when it's done."
+            return "M3 checks \(updater.interval.phrase). A new version installs itself when no app is presenting or keeping the screen awake and your Mac hasn't been used for 2 minutes. Your counts are saved first, and you'll get a notification when it's done."
         case .ask:
-            return "M3 checks every 30 minutes and sends a notification when a new version is out. Nothing installs until you choose to."
+            return "M3 checks \(updater.interval.phrase) and sends a notification when a new version is out. Nothing installs until you choose to."
         case .off:
             return "M3 won't look for updates on its own. Use Check Now whenever you like."
         }

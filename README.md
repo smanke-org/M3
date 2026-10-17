@@ -239,7 +239,7 @@ the **same Developer ID Team ID** as the running app, and a passing Gatekeeper
 assessment (i.e. Apple notarized it) — any failure aborts the update and
 leaves the installed app untouched.
 
-M3 also checks on its own a few seconds after launch and every 30 minutes.
+M3 also checks on its own once a day, or as often as you choose in Settings (a number of hours, days, weeks or months).
 Settings › **Sync & Updates** (or "When an Update Is Available" in the menu)
 decides what happens when it finds one:
 

@@ -35,7 +35,7 @@ final class SettingsSync: ObservableObject {
     static let keys = [
         "showInDock", "showInMenuBar", "menuBarShowsAllMacs", "menuBarMarksAllMacs",
         "menu.cards", "flyout.cards", "topApps.range", "apps.sort", "apps.sortAscending",
-        "battery.lowWarning", UpdatePolicy.key,
+        "battery.lowWarning", UpdatePolicy.key, UpdateInterval.valueKey, UpdateInterval.unitKey,
     ]
 
     /// What each setting is when this Mac has never changed it, for settings without a
@@ -157,6 +157,8 @@ final class SettingsSync: ObservableObject {
             if let value = defaults.object(forKey: key) ?? Self.fallbacks[key] { settings[key] = value }
         }
         settings[UpdatePolicy.key] = UpdatePolicy.current.rawValue
+        settings[UpdateInterval.valueKey] = UpdateInterval.current.value
+        settings[UpdateInterval.unitKey] = UpdateInterval.current.unit.rawValue
         return settings as NSDictionary
     }
 
