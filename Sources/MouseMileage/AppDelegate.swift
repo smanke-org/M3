@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         otherApps.target = self
         mainMenu.items.first?.submenu?.insertItem(otherApps, at: 1)
         NSApp.mainMenu = mainMenu
+        AppAppearance.start()
 
         UpdateSettings.registerDefaults()
         MenuBarSettings.registerDefaults()

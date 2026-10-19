@@ -246,6 +246,14 @@ struct PreferencesView: View {
 
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 6) {
+            AppearancePicker()
+                .fixedSize()
+            Text(AppAppearance.footer(appName: AppInfo.shortName))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, 6)
+
             Toggle("Launch at Login", isOn: Binding(
                 get: { viewModel.launchAtLoginEnabled },
                 set: { viewModel.toggleLaunchAtLogin($0) }

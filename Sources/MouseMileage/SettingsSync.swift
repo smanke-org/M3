@@ -33,7 +33,7 @@ final class SettingsSync: ObservableObject {
 
     /// The settings that follow the user between Macs.
     static let keys = [
-        "showInDock", "showInMenuBar", "menuBarShowsAllMacs", "menuBarMarksAllMacs",
+        "showInDock", "showInMenuBar", AppAppearance.key, "menuBarShowsAllMacs", "menuBarMarksAllMacs",
         "menu.cards", "flyout.cards", "topApps.range", "apps.sort", "apps.sortAscending",
         "battery.lowWarning", UpdatePolicy.key, UpdateInterval.valueKey, UpdateInterval.unitKey,
     ]
@@ -42,7 +42,7 @@ final class SettingsSync: ObservableObject {
     /// registered default. Uploading these too means a Mac adopting the file never mistakes
     /// "at its default" for "missing".
     private static let fallbacks: [String: Any] = [
-        "showInDock": false, "showInMenuBar": true, "menuBarShowsAllMacs": false,
+        "showInDock": false, "showInMenuBar": true, AppAppearance.key: AppAppearance.system.rawValue, "menuBarShowsAllMacs": false,
         "topApps.range": "today", "apps.sort": "distance", "apps.sortAscending": false,
         "battery.lowWarning": true,
     ]
