@@ -40,8 +40,21 @@ struct PreferencesView: View {
             .frame(width: 500)
     }
 
-    @ViewBuilder
+    /// Each tab, with the round Help button in its bottom corner, as macOS does.
     private func content(_ tab: PreferencesTab) -> some View {
+        VStack(spacing: 0) {
+            tabContent(tab)
+            HStack {
+                Spacer()
+                HelpButton(topic: Help.topic(for: tab)).fixedSize()
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+        }
+    }
+
+    @ViewBuilder
+    private func tabContent(_ tab: PreferencesTab) -> some View {
         switch tab {
         case .general: general
         case .menu: page { menuSection }

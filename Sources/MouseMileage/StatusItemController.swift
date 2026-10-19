@@ -77,6 +77,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         installChartsViews()
 
         menu.addItem(.separator())
+        let helpEntry = menu.addItem(withTitle: "M3 Tracker Help", action: #selector(showHelp), keyEquivalent: "")
+        helpEntry.target = self
+        helpEntry.image = NSImage(systemSymbolName: "questionmark.circle", accessibilityDescription: nil)
         menu.addItem(withTitle: "Settings…", action: #selector(openPreferences), keyEquivalent: ",")
             .target = self
         let updateItem = menu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
@@ -202,6 +205,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             allMacsPoints: sync.allMacsPoints
         )
     }
+
+    @MainActor @objc func showHelp() { HelpWindow.shared.show() }
 
     @objc func openPreferences() {
         preferencesController.show()

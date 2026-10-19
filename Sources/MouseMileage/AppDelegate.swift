@@ -17,9 +17,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let otherApps = NSMenuItem(title: "Our other apps…", action: #selector(showOtherApps), keyEquivalent: "")
         otherApps.target = self
         mainMenu.items.first?.submenu?.insertItem(otherApps, at: 1)
+        // Help menu, with the standard ⌘? (macOS adds its search field).
+        let helpItem = NSMenuItem()
+        let help = NSMenu(title: "Help")
+        let helpOpen = NSMenuItem(title: "M3 Tracker Help", action: #selector(showHelp), keyEquivalent: "?")
+        helpOpen.target = self
+        help.addItem(helpOpen)
+        helpItem.submenu = help
+        mainMenu.addItem(helpItem)
+        NSApp.helpMenu = help
         NSApp.mainMenu = mainMenu
         AppAppearance.start()
 
+        #if DEBUG
+        // A test run shares the installed app's settings, so it checks Help and stops
+        // before sync or anything else starts.
+        if let snapshot = ProcessInfo.processInfo.environment["M3_DEBUG_HELP_TEST"] {
+            DebugHelpTest.run(snapshot: snapshot, delegate: nil)
+            return
+        }
+        #endif
         UpdateSettings.registerDefaults()
         MenuBarSettings.registerDefaults()
         MenuLayoutSettings.registerDefaults()
@@ -57,6 +74,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openPreferences()
         return true
     }
+
+    @MainActor @objc func showHelp() { HelpWindow.shared.show() }
 
     @objc func openPreferences() {
         statusItemController?.openPreferences()
