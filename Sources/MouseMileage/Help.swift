@@ -58,6 +58,7 @@ enum Help {
             .text("To see keystrokes typed in other apps, M3 Tracker needs Accessibility permission (macOS 27 calls it Device Control). Without it, pointer mileage is still counted, and Settings › General shows a warning with a button to fix it."),
             .text("Only counts are kept: M3 Tracker never records which keys you press or what you type."),
             .tip("Settings › General shows the totals for this Mac and when tracking began."),
+            .tip("While ToolHUD is running, M3 Tracker's menu, charts included, moves into ToolHUD's menu bar menu as a submenu, and the icon here steps aside until ToolHUD quits. To keep the icon, turn off \"Put in ToolHUD's menu while ToolHUD is running\" in Settings."),
         ]),
 
         HelpTopic(id: "menu", title: "The Menu and Charts", symbol: "chart.bar", blocks: [

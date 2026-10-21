@@ -52,12 +52,41 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             NotificationCenter.default.addObserver(self, selector: #selector(updateTitle), name: name, object: nil)
         }
 
-        // Preferences can hide the menu bar icon (the app then lives in the Dock, or nowhere).
-        statusItem.isVisible = AppPresence.showInMenuBar
+        // Preferences can hide the menu bar icon (the app then lives in the Dock, or nowhere),
+        // and ToolHUD can take the menu into its own while it runs.
+        MainActor.assumeIsolated { statusItem.isVisible = MenuHub.shared.showsOwnIcon }
         NotificationCenter.default.addObserver(forName: AppPresence.menuBarDidChange, object: nil,
                                                queue: .main) { [weak self] _ in
-            self?.statusItem.isVisible = AppPresence.showInMenuBar
+            MainActor.assumeIsolated { self?.statusItem.isVisible = MenuHub.shared.showsOwnIcon }
         }
+        // The menu is built once (its charts are live views), so ToolHUD gets the menu itself,
+        // brought up to date as opening it would; the charts travel as pictures.
+        MainActor.assumeIsolated {
+            MenuHub.shared.start(menu: { [unowned self] in
+                let menu = statusItem.menu ?? NSMenu()
+                menuWillOpen(menu)
+                // Nothing here stays open, so stop the timer that keeps an open menu current.
+                menuDidClose(menu)
+                return menu
+            }, icon: { [unowned self] in hubIcon })
+        }
+    }
+
+    /// The menu bar shows a distance rather than an icon, so ToolHUD's row gets the same text.
+    private var hubIcon: NSImage? {
+        let title = statusItem.button?.title ?? ""
+        guard !title.isEmpty else { return statusItem.button?.image }
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
+            .foregroundColor: NSColor.black,
+        ]
+        let size = (title as NSString).size(withAttributes: attributes)
+        let image = NSImage(size: NSSize(width: ceil(size.width), height: ceil(size.height)), flipped: false) { rect in
+            (title as NSString).draw(in: rect, withAttributes: attributes)
+            return true
+        }
+        image.isTemplate = true
+        return image
     }
 
     private func buildMenu() {

@@ -15,6 +15,7 @@ struct PreferencesView: View {
     @ObservedObject var viewModel: PreferencesViewModel
     @ObservedObject var batteryViewModel: BatteryViewModel
     @ObservedObject var tabState: PreferencesTabState
+    @ObservedObject private var hub = MenuHub.shared
 
     // Tabs, because one page holding the apps list and the charge chart as
     // well would be taller than a laptop screen.
@@ -279,6 +280,10 @@ struct PreferencesView: View {
 
             Toggle("Show in menu bar", isOn: $viewModel.showInMenuBar)
                 .toggleStyle(.checkbox)
+
+            Toggle("Put in ToolHUD’s menu while ToolHUD is running", isOn: $hub.foldIntoToolHUD)
+                .toggleStyle(.checkbox)
+                .help("ToolHUD shows this menu as a submenu of its own, and M3 Tracker’s distance leaves the menu bar until ToolHUD quits.")
 
             if !viewModel.showInDock && !viewModel.showInMenuBar {
                 Text(AppPresence.hiddenEverywhereNote(appName: AppInfo.shortName, settingsName: "Settings"))
