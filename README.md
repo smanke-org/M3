@@ -362,3 +362,7 @@ the View Options picture well by hand and discards it when the window closes.
    which only resolves if every release carries a file with exactly that name. `UpdateController` fetches whatever asset ends in `.dmg` from the
    **latest** release, so this is the step that actually makes an update
    available to installed copies of the app.
+
+## License
+
+© 2026 Steve Manke. All rights reserved.
