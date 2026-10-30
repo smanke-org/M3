@@ -35,7 +35,7 @@ final class SettingsSync: ObservableObject {
     static let keys = [
         "showInDock", "showInMenuBar", MenuHub.foldKey, AppAppearance.key, "menuBarShowsAllMacs", "menuBarMarksAllMacs",
         "menu.cards", "flyout.cards", "topApps.range", "apps.sort", "apps.sortAscending",
-        "battery.lowWarning", UpdatePolicy.key, UpdateInterval.valueKey, UpdateInterval.unitKey,
+        "battery.lowWarning", UpdatePolicy.key, UpdateInterval.valueKey, UpdateInterval.unitKey, QuitConfirmation.key,
     ]
 
     /// What each setting is when this Mac has never changed it, for settings without a
@@ -44,7 +44,7 @@ final class SettingsSync: ObservableObject {
     private static let fallbacks: [String: Any] = [
         "showInDock": false, "showInMenuBar": true, MenuHub.foldKey: true, AppAppearance.key: AppAppearance.system.rawValue, "menuBarShowsAllMacs": false,
         "topApps.range": "today", "apps.sort": "distance", "apps.sortAscending": false,
-        "battery.lowWarning": true,
+        "battery.lowWarning": true, QuitConfirmation.key: true,
     ]
 
     private var localModified: Date? {

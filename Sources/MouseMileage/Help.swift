@@ -59,6 +59,7 @@ enum Help {
             .text("Only counts are kept: M3 Tracker never records which keys you press or what you type."),
             .tip("Settings › General shows the totals for this Mac and when tracking began."),
             .tip("While ToolHUD is running, M3 Tracker's menu, charts included, moves into ToolHUD's menu bar menu as a submenu, and the icon here steps aside until ToolHUD quits. To keep the icon, turn off \"Put in ToolHUD's menu while ToolHUD is running\" in Settings."),
+            .tip("Quitting asks first, since nothing is counted while M3 Tracker is closed. Turn off \"Ask before quitting\" in Settings › General, or tick \"Don't ask again\" when it asks."),
         ]),
 
         HelpTopic(id: "menu", title: "The Menu and Charts", symbol: "chart.bar", blocks: [
@@ -84,7 +85,7 @@ enum Help {
 
         HelpTopic(id: "all-macs", title: "All Your Macs", symbol: "laptopcomputer.and.iphone", blocks: [
             .text("With iCloud Drive on, each Mac writes its totals to iCloud Drive › M3 Tracker, and every Mac shows the combined All Macs mileage. Deleting a Mac's file there removes it from the total."),
-            .text("Settings › Sync & Updates can also sync your choices (menu bar, cards, app list, low-battery warnings, where M3 appears, updates) with your other Macs, and chooses how updates arrive."),
+            .text("Settings › Sync & Updates can also sync your choices (menu bar, cards, app list, low-battery warnings, where M3 appears, asking before quitting, updates) with your other Macs, and chooses how updates arrive."),
         ]),
 
         HelpTopic(id: "automation", title: "Automation", symbol: "gearshape.2", blocks: [

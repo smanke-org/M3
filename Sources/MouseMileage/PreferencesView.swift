@@ -16,6 +16,7 @@ struct PreferencesView: View {
     @ObservedObject var batteryViewModel: BatteryViewModel
     @ObservedObject var tabState: PreferencesTabState
     @ObservedObject private var hub = MenuHub.shared
+    @AppStorage(QuitConfirmation.key) private var confirmQuit = true
 
     // Tabs, because one page holding the apps list and the charge chart as
     // well would be taller than a laptop screen.
@@ -274,6 +275,10 @@ struct PreferencesView: View {
             ))
             .toggleStyle(.checkbox)
 
+            Toggle("Ask before quitting", isOn: $confirmQuit)
+                .toggleStyle(.checkbox)
+                .help("Quitting M3 Tracker asks first, so a stray ⌘Q doesn't stop the counting.")
+
             Toggle("Show in Dock", isOn: $viewModel.showInDock)
                 .toggleStyle(.checkbox)
                 .help("Adds a Dock icon whose right-click menu opens Settings.")
@@ -413,7 +418,7 @@ struct SyncAndUpdatesView: View {
                     }
                     .font(.callout)
                 }
-                Text("Menu bar, menu card and app list choices, low-battery warnings, where M3 appears, and how updates arrive follow you to every Mac signed in to the same iCloud account with sync turned on. Your mileage syncs separately, and open at login and battery tracking stay separate on each Mac.")
+                Text("Menu bar, menu card and app list choices, low-battery warnings, where M3 appears, asking before quitting, and how updates arrive follow you to every Mac signed in to the same iCloud account with sync turned on. Your mileage syncs separately, and open at login and battery tracking stay separate on each Mac.")
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
