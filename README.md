@@ -9,6 +9,8 @@ year, a breakdown by app, and combined totals across all your Macs through iClou
 It's a fun way to see your habits, and a useful one: you might find which app keeps your
 hand moving the most, or how far a mouse goes on one battery charge.
 
+<p align="center"><img src="docs/images/m3-menu.webp" width="360" alt="M3 Tracker menu showing distance moved and scrolled on this Mac and all Macs, the top apps, and charts by hour and by day"></p>
+
 ---
 
 ## ⬇️ Download
@@ -29,6 +31,32 @@ hand moving the most, or how far a mouse goes on one battery charge.
 Requires macOS 13 or later, Intel or Apple silicon. Signed with Developer ID and notarized by Apple.
 
 ---
+
+## Features
+
+- **Mouse mileage**: Pointer travel from a mouse or trackpad, shown in the menu bar in feet, then miles.
+- **Clicks, keystrokes and scrolling**: Clicks and key presses are counted (only counts, never what you type), and so is how far content scrolls, kept separate from pointer mileage.
+- **Charts**: Today by Hour, By Day and Year to Date. Click a chart to open it in a resizable window, and point at it for that hour's, day's or month's distance.
+- **All your Macs**: Every Mac signed in to the same Apple Account shares its totals through iCloud Drive, so you see This Mac and All Macs side by side.
+- **Mileage per app**: The Top Apps card and Settings › Apps show distance, scrolling, clicks and keystrokes for each app, for today, 7 days or all time.
+- **Mileage per battery charge**: Optional, for Logitech mice and the Apple Magic Mouse: how far the mouse travels on one charge, with a low-battery warning.
+- **Make the menu yours**: Choose which cards appear in the menu, in the More Charts flyout, in both or in neither, and whether the menu bar shows this Mac or all Macs.
+- **URLs** for ToolHUD, Shortcuts or scripts: `m3tracker://today`, `m3tracker://by-day` and `m3tracker://year` open the charts.
+- **Settings sync**: Your menu, app list, warning and update choices can follow you to every Mac on the same iCloud account.
+- **Dock, menu bar, both or neither**, plus Launch at Login and updates from GitHub that ask first or install automatically.
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/m3-apps.webp" alt="M3 Tracker Settings, Apps tab: distance, scroll, clicks and keystrokes for each app"><br><sub><b>Apps.</b> Distance, scrolling, clicks and keystrokes for each app.</sub></td>
+<td width="50%"><img src="docs/images/m3-menu-settings.webp" alt="M3 Tracker Settings, Menu tab: what the menu bar shows and which cards appear in the menu or More Charts"><br><sub><b>Menu settings.</b> Choose what the menu bar shows and where each card goes.</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/images/m3-year-to-date.png" alt="Year to Date chart with pointer and scroll lines"><br><sub><b>Year to Date.</b> Pointer and scroll distance so far this year.</sub></td>
+<td width="50%"><img src="docs/images/m3-mileage-per-charge.png" alt="Mileage per Charge card for two Logitech mice with their battery levels"><br><sub><b>Mileage per Charge.</b> How far each mouse has gone on its current charge.</sub></td>
+</tr>
+</table>
 
 ## Updates
 
