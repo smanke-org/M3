@@ -57,6 +57,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DebugHelpTest.run(snapshot: snapshot, delegate: nil)
             return
         }
+        // The update prompt, What's New and Settings drawn to PNGs; starts nothing else
+        // (no counting, permission request, sync or updater).
+        if let folder = ProcessInfo.processInfo.environment["M3_DEBUG_UPDATE_NOTES"] {
+            DebugUpdateNotes.run(folder: folder)
+            return
+        }
         #endif
         UpdateSettings.registerDefaults()
         MenuBarSettings.registerDefaults()
@@ -81,7 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if newInstall { SettingsSync.shared.adoptOnNewInstall() }
         SettingsSync.shared.start()
 
-        AutoUpdater.shared.start()
+        AutoUpdater.shared.start(newInstall: newInstall)
     }
 
     /// The Dock icon's right-click menu, when "Show in Dock" is on.

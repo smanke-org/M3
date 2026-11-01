@@ -3,7 +3,7 @@ import SwiftUI
 
 final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
-    private let preferencesController = PreferencesWindowController()
+    private let preferencesController = PreferencesWindowController.shared
     private let historyViewModel = HistoryViewModel()
     private let batteryViewModel = BatteryViewModel()
     private lazy var chartWindow = ChartWindowController(viewModel: historyViewModel)

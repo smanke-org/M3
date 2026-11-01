@@ -30,8 +30,8 @@ struct PreferencesView: View {
             }
         }
         .padding(12)
-        .frame(width: 500)
-        .frame(maxHeight: .infinity)
+        // Fills whatever size the window is dragged to.
+        .frame(minWidth: PreferencesWindowController.width, maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// One tab on its own, without scrolling, for measuring its natural height. A
@@ -39,7 +39,7 @@ struct PreferencesView: View {
     func measuring(_ tab: PreferencesTab) -> some View {
         TabView { content(tab).tabItem { label(tab) } }
             .padding(12)
-            .frame(width: 500)
+            .frame(width: PreferencesWindowController.width)
     }
 
     /// Each tab, with the round Help button in its bottom corner, as macOS does.
@@ -444,6 +444,7 @@ struct SyncAndUpdatesView: View {
                 HStack {
                     Text("Version \(AppInfo.version)").foregroundStyle(.secondary)
                     Spacer()
+                    Button("What's New…") { PreferencesWindowController.shared.showWhatsNew() }
                     Button("Check Now") { UpdateController.checkForUpdates() }
                 }
                 if let error = updater.lastError {
