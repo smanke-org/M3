@@ -43,6 +43,8 @@ Requires macOS 13 or later, Intel or Apple silicon. Signed with Developer ID and
 - **Make the menu yours**: Choose which cards appear in the menu, in the More Charts flyout, in both or in neither, and whether the menu bar shows this Mac or all Macs.
 - **URLs** for ToolHUD, Shortcuts or scripts: `m3tracker://today`, `m3tracker://by-day` and `m3tracker://year` open the charts.
 - **Settings sync**: Your menu, app list, warning and update choices can follow you to every Mac on the same iCloud account.
+- **What's new**: The update window shows the notes for the latest releases, marking the ones you don't have yet. What's New… in Settings › Sync & Updates shows them any time.
+- **Resizable Settings**: Drag Settings bigger to see more at once; it keeps the size you choose for every tab.
 - **Dock, menu bar, both or neither**, plus Launch at Login and updates from GitHub that ask first or install automatically.
 
 ## Screenshots
@@ -272,8 +274,9 @@ Settings › **Sync & Updates** (or "When an Update Is Available" in the menu)
 decides what happens when it finds one:
 
 - **Ask me first** (the default): a notification and an "Update to …" menu
-  item; nothing installs until you confirm. Declining offers "Skip This
-  Version", which stops the background check raising that version again.
+  item; nothing installs until you confirm. Declining with "Don't remind me
+  about this version" ticked (the default) stops the background check raising
+  that version again.
 - **Install automatically**: the update is downloaded and verified straight
   away, then installed once no app is presenting or keeping the display awake
   and the Mac hasn't been used for 2 minutes. Counts are saved before the
