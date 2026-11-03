@@ -1,6 +1,12 @@
 import Foundation
 
 enum AppInfo {
+    /// The About window: the version and the last 10 releases' notes.
+    @MainActor
+    static func showAbout() {
+        AboutWindow.shared.show()
+    }
+
     static let displayName = "M3 Tracker: Mac Mouse Mileage Tracker"
     static let shortName = "M3 Tracker"
     static let bundleIdentifier = "com.smanke.MouseMileage"

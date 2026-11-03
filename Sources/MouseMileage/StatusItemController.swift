@@ -267,10 +267,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         NSApp.terminate(nil)
     }
 
-    @objc private func showAbout() {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(nil)
-    }
+    @MainActor @objc private func showAbout() { AppInfo.showAbout() }
     /// The developer's site, which lists every app.
     @objc private func showOtherApps() {
         if let url = URL(string: "https://stevemanke.com/") { NSWorkspace.shared.open(url) }
