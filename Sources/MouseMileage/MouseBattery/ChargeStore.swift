@@ -136,7 +136,7 @@ final class ChargeStore {
     }()
 
     private init() {
-        logs = UserDefaults.standard.data(forKey: Self.defaultsKey)
+        logs = AppDefaults.store.data(forKey: Self.defaultsKey)
             .flatMap { try? Self.decoder.decode([String: MouseLog].self, from: $0) } ?? [:]
         saveTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             self?.saveIfNeeded()
@@ -255,7 +255,7 @@ final class ChargeStore {
     func saveIfNeeded() {
         guard dirty else { return }
         if let data = try? Self.encoder.encode(logs) {
-            UserDefaults.standard.set(data, forKey: Self.defaultsKey)
+            AppDefaults.store.set(data, forKey: Self.defaultsKey)
         }
         dirty = false
     }

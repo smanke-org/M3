@@ -7,8 +7,8 @@ enum QuitConfirmation {
     private(set) static var confirmed = false
 
     static var isOn: Bool {
-        get { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: key) }
+        get { AppDefaults.store.object(forKey: key) as? Bool ?? true }
+        set { AppDefaults.store.set(newValue, forKey: key) }
     }
 
     static func quitNow() {
@@ -24,7 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Read before anything starts counting: MetricsStore records when tracking began
         // on the very first launch, so its absence means a brand-new install.
-        let newInstall = UserDefaults.standard.object(forKey: "trackingStartedAt") == nil
+        let newInstall = AppDefaults.store.object(forKey: "trackingStartedAt") == nil
 
         // A menu bar app; it has a Dock icon only if the user turned one on.
         NSApp.setActivationPolicy(AppPresence.showInDock ? .regular : .accessory)
@@ -44,6 +44,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainMenu.addItem(helpItem)
         NSApp.helpMenu = help
         NSApp.mainMenu = mainMenu
+
+        #if DEBUG
+        // A test run of the agent CLI (APP_STORE): its own counts and settings (AppDefaults),
+        // its own sync folder inside APP_STORE, and the agent socket. Nothing else starts: no
+        // event monitor or permission request, menu bar item, ToolHUD menu hub, battery
+        // tracking, iCloud Drive sync, settings sync, updater or windows.
+        if AgentSocket.isTestRun {
+            MenuBarSettings.registerDefaults()
+            _ = MetricsStore.shared
+            _ = AppUsageStore.shared
+            _ = ChargeStore.shared
+            // Reads only the test folder's device files (APP_STORE/Devices), once.
+            CloudSync.shared.refreshRemote()
+            AgentSocket.listen { AgentRouter.handle($0) }
+            return
+        }
+        #endif
         AppAppearance.start()
 
         #if DEBUG
@@ -69,6 +86,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MenuLayoutSettings.registerDefaults()
 
         statusItemController = StatusItemController()
+
+        // `m3` and the MCP server talk to the app through this.
+        AgentSocket.listen { AgentRouter.handle($0) }
 
         // Follow the focused app before events start arriving, so the first
         // movement is credited to the right app rather than "unknown".
@@ -106,6 +126,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func openPreferences() {
         statusItemController?.openPreferences()
+    }
+
+    /// False in an agent CLI test copy, which has no menu bar item and opens no windows.
+    var showsWindows: Bool { statusItemController != nil }
+
+    /// `m3 charts open`: what the m3tracker:// chart links do.
+    func showChart(_ card: MenuCard) {
+        statusItemController?.showChart(card)
     }
 
     /// `m3tracker://today`, `by-day` and `year` (from ToolHUD, Shortcuts or a script) open

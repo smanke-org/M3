@@ -52,7 +52,7 @@ final class SettingsSync: ObservableObject {
         set { defaults.set(newValue, forKey: Keys.localModified) }
     }
 
-    private let defaults = UserDefaults.standard
+    private let defaults = AppDefaults.store
     private var applying = false
     private var started = false
     private var writeTask: Task<Void, Never>?
@@ -84,7 +84,7 @@ final class SettingsSync: ObservableObject {
     }
 
     private init() {
-        isEnabled = UserDefaults.standard.bool(forKey: Keys.enabled)
+        isEnabled = AppDefaults.store.bool(forKey: Keys.enabled)
     }
 
     // MARK: - Lifecycle

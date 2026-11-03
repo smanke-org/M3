@@ -28,7 +28,7 @@ final class EventMonitor {
     var isTrusted: Bool { AXIsProcessTrusted() }
 
     private func recordTrust(_ trusted: Bool) {
-        UserDefaults.standard.set(trusted, forKey: EventMonitor.trustedDefaultsKey)
+        AppDefaults.store.set(trusted, forKey: EventMonitor.trustedDefaultsKey)
     }
 
     func requestPermissionIfNeeded() {

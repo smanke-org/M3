@@ -16,7 +16,7 @@ struct PreferencesView: View {
     @ObservedObject var batteryViewModel: BatteryViewModel
     @ObservedObject var tabState: PreferencesTabState
     @ObservedObject private var hub = MenuHub.shared
-    @AppStorage(QuitConfirmation.key) private var confirmQuit = true
+    @AppStorage(QuitConfirmation.key, store: AppDefaults.store) private var confirmQuit = true
 
     // Tabs, because one page holding the apps list and the charge chart as
     // well would be taller than a laptop screen.

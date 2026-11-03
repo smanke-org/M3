@@ -16,7 +16,7 @@ final class MileageHistoryStore {
         var id: Date { start }
     }
 
-    private let defaults = UserDefaults.standard
+    private let defaults = AppDefaults.store
     private struct Keys {
         let hourly: String
         let daily: String

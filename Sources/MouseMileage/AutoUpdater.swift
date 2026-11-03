@@ -69,7 +69,7 @@ final class AutoUpdater: NSObject, ObservableObject, UNUserNotificationCenterDel
         if policy != .off { requestNotificationPermission() }
         // Before the automatic-update record is read.
         WhatsNew.shared.noteLaunch(newInstall: newInstall,
-                                   autoInstalledFrom: UserDefaults.standard.string(forKey: Self.installedFromKey))
+                                   autoInstalledFrom: AppDefaults.store.string(forKey: Self.installedFromKey))
         announceIfJustUpdated()
 
         // A few seconds after launch, so startup isn't waiting on the network.
@@ -106,7 +106,7 @@ final class AutoUpdater: NSObject, ObservableObject, UNUserNotificationCenterDel
 
     /// Checks if the chosen interval has passed since this Mac last asked.
     func checkIfDue() {
-        if let last = UserDefaults.standard.object(forKey: Self.lastCheckKey) as? Date,
+        if let last = AppDefaults.store.object(forKey: Self.lastCheckKey) as? Date,
            Date().timeIntervalSince(last) < checkInterval - 1 { return }
         check()
     }
@@ -116,7 +116,7 @@ final class AutoUpdater: NSObject, ObservableObject, UNUserNotificationCenterDel
     func check() {
         guard policy != .off, !checking, staged == nil else { return }
         checking = true
-        UserDefaults.standard.set(Date(), forKey: Self.lastCheckKey)
+        AppDefaults.store.set(Date(), forKey: Self.lastCheckKey)
         Task {
             defer { checking = false }
             var reachedGitHub = false
@@ -146,7 +146,7 @@ final class AutoUpdater: NSObject, ObservableObject, UNUserNotificationCenterDel
                 }
             } catch {
                 lastError = error.localizedDescription
-                if !reachedGitHub { UserDefaults.standard.removeObject(forKey: Self.lastCheckKey) }
+                if !reachedGitHub { AppDefaults.store.removeObject(forKey: Self.lastCheckKey) }
                 NSLog("M3 Tracker: update check failed: \(error.localizedDescription)")
                 // An automatic install that failed falls back to asking, once per version.
                 if policy == .automatic, let version = UpdateAvailability.shared.pending {
@@ -208,11 +208,11 @@ final class AutoUpdater: NSObject, ObservableObject, UNUserNotificationCenterDel
             // Checked again now: the staged copy may have waited hours in a folder that other
             // processes of this user can write to.
             try UpdateController.verifyCandidate(app, version: version)
-            UserDefaults.standard.set(AppInfo.version, forKey: Self.installedFromKey)
+            AppDefaults.store.set(AppInfo.version, forKey: Self.installedFromKey)
             NSLog("M3 Tracker: installing update \(version)")
             try UpdateController.installAndRelaunch(from: app)
         } catch {
-            UserDefaults.standard.removeObject(forKey: Self.installedFromKey)
+            AppDefaults.store.removeObject(forKey: Self.installedFromKey)
             NSLog("M3 Tracker: update \(version) not installed: \(error.localizedDescription)")
             lastError = error.localizedDescription
             staged = nil
@@ -243,16 +243,16 @@ final class AutoUpdater: NSObject, ObservableObject, UNUserNotificationCenterDel
 
     /// After an automatic install, the relaunched app says what changed.
     private func announceIfJustUpdated() {
-        guard let from = UserDefaults.standard.string(forKey: Self.installedFromKey) else { return }
-        UserDefaults.standard.removeObject(forKey: Self.installedFromKey)
+        guard let from = AppDefaults.store.string(forKey: Self.installedFromKey) else { return }
+        AppDefaults.store.removeObject(forKey: Self.installedFromKey)
         guard from != AppInfo.version else { return }
         notify(id: "updated-\(AppInfo.version)", title: "M3 Tracker updated to \(AppInfo.version)",
                body: "It installed itself while your Mac wasn't in use. Click to see what's new.", installable: false)
     }
 
     private func notifyAvailable(_ version: String) {
-        guard UserDefaults.standard.string(forKey: Self.notifiedVersionKey) != version else { return }
-        UserDefaults.standard.set(version, forKey: Self.notifiedVersionKey)
+        guard AppDefaults.store.string(forKey: Self.notifiedVersionKey) != version else { return }
+        AppDefaults.store.set(version, forKey: Self.notifiedVersionKey)
         notify(id: "available-\(version)", title: "M3 Tracker \(version) is available",
                body: "Click to review and install it. You're on \(AppInfo.version).", installable: true)
     }

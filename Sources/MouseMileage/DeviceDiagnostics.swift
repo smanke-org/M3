@@ -48,7 +48,7 @@ final class InputDiagnostics {
     /// Rounded to the minute, so the synced file isn't rewritten for every
     /// scroll event's timestamp alone.
     var snapshot: DeviceDiagnostics {
-        let defaults = UserDefaults.standard
+        let defaults = AppDefaults.store
         return DeviceDiagnostics(
             appVersion: AppInfo.version,
             launchedAt: launchedAt,

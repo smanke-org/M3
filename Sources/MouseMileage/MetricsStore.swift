@@ -7,7 +7,7 @@ final class MetricsStore {
 
     static let didUpdateNotification = Notification.Name("MetricsStore.didUpdate")
 
-    private let defaults = UserDefaults.standard
+    private let defaults = AppDefaults.store
 
     private enum Keys {
         static let totalPoints = "totalPoints"

@@ -100,7 +100,7 @@ final class AppUsageStore {
     /// Enough for a 7-day window plus the day that's rolling off.
     private let dayRetention = 8
 
-    private let defaults = UserDefaults.standard
+    private let defaults = AppDefaults.store
     private enum Keys {
         static let allTime = "apps.allTime"
         static let days = "apps.days"
@@ -127,7 +127,7 @@ final class AppUsageStore {
 
     private init() {
         func load<T: Decodable>(_ key: String, as type: T.Type) -> T? {
-            UserDefaults.standard.data(forKey: key).flatMap { try? Self.decoder.decode(T.self, from: $0) }
+            AppDefaults.store.data(forKey: key).flatMap { try? Self.decoder.decode(T.self, from: $0) }
         }
         allTime = load(Keys.allTime, as: [String: AppUsage].self) ?? [:]
         days = load(Keys.days, as: [AppDay].self) ?? []

@@ -46,15 +46,15 @@ final class LowBatteryWarner {
 
     /// On by default; the switch is in Preferences › Battery.
     static var isEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
+        get { AppDefaults.store.object(forKey: enabledKey) as? Bool ?? true }
+        set { AppDefaults.store.set(newValue, forKey: enabledKey) }
     }
 
     /// Mice already warned about this discharge. Kept across launches, so a
     /// relaunch doesn't warn again about a mouse that's still low.
     private var warned: Set<String> {
-        get { Set(UserDefaults.standard.stringArray(forKey: Self.warnedKey) ?? []) }
-        set { UserDefaults.standard.set(Array(newValue).sorted(), forKey: Self.warnedKey) }
+        get { Set(AppDefaults.store.stringArray(forKey: Self.warnedKey) ?? []) }
+        set { AppDefaults.store.set(Array(newValue).sorted(), forKey: Self.warnedKey) }
     }
 
     /// One panel per mouse, stacked down from the corner.

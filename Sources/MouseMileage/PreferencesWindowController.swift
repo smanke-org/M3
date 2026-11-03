@@ -18,8 +18,8 @@ final class PreferencesWindowController: NSObject, NSWindowDelegate {
     /// The content size the user last dragged the window to (per Mac, not synced), or nil
     /// while they haven't: then each tab opens at its own height.
     static var chosenSize: NSSize? {
-        get { UserDefaults.standard.string(forKey: "settings.contentSize").map(NSSizeFromString) }
-        set { UserDefaults.standard.set(newValue.map(NSStringFromSize), forKey: "settings.contentSize") }
+        get { AppDefaults.store.string(forKey: "settings.contentSize").map(NSSizeFromString) }
+        set { AppDefaults.store.set(newValue.map(NSStringFromSize), forKey: "settings.contentSize") }
     }
 
     func show() {

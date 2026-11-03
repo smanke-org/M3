@@ -96,6 +96,15 @@ enum Help {
                 ("m3tracker://settings", "Open Settings"),
             ]),
             .text("Use these links from Shortcuts, scripts or a launcher. ToolHUD's M3 Tracker buttons use them."),
+            .heading("Command line and AI agents"),
+            .text("M3 Tracker is also a command line tool, so scripts and AI agents such as Claude Code or Codex can read your totals, charts, per-app numbers and mouse battery mileage, for this Mac and all your Macs. Commands run in the open app, so the menu shows any change at once. Resetting a counter or a mouse's charge history needs --yes."),
+            .keys([
+                ("m3 help", "List every command and its options"),
+                ("m3 totals show", "This Mac's and All Macs' distance, scrolling, clicks and keystrokes"),
+                ("m3 apps list --range 7days", "Apps by distance, as Top Apps shows them"),
+                ("m3 mcp", "Offer the same commands to MCP apps, such as Claude Desktop"),
+            ]),
+            .text("To type m3 in Terminal, link it once: ln -s \"/Applications/M3 Tracker.app/Contents/MacOS/MouseMileage\" ~/.local/bin/m3 (with ~/.local/bin on your PATH). MCP apps take the full path to that program, followed by mcp."),
         ]),
 
         HelpTopic(id: "updates", title: "Updates", symbol: "arrow.down.circle", blocks: [

@@ -36,7 +36,7 @@ enum MenuLayoutSettings {
     }
 
     static func registerDefaults() {
-        UserDefaults.standard.register(defaults: [
+        AppDefaults.store.register(defaults: [
             Key.menu: [MenuCard.todayByHour.rawValue],
             Key.flyout: MenuCard.allCases.map(\.rawValue),
         ])
@@ -58,12 +58,12 @@ enum MenuLayoutSettings {
     }
 
     private static func cards(forKey key: String) -> Set<MenuCard> {
-        cards(from: UserDefaults.standard.stringArray(forKey: key) ?? [])
+        cards(from: AppDefaults.store.stringArray(forKey: key) ?? [])
     }
 
     private static func set(_ cards: Set<MenuCard>, forKey key: String) {
         // Stored in display order, so the defaults read naturally.
-        UserDefaults.standard.set(MenuCard.allCases.filter(cards.contains).map(\.rawValue), forKey: key)
+        AppDefaults.store.set(MenuCard.allCases.filter(cards.contains).map(\.rawValue), forKey: key)
         NotificationCenter.default.post(name: didChangeNotification, object: nil)
     }
 }

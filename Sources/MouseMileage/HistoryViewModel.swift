@@ -28,7 +28,7 @@ final class HistoryViewModel: ObservableObject {
     /// Remembered across launches.
     @Published var appRange: AppUsageRange = HistoryViewModel.savedAppRange {
         didSet {
-            UserDefaults.standard.set(appRange.rawValue, forKey: Self.appRangeKey)
+            AppDefaults.store.set(appRange.rawValue, forKey: Self.appRangeKey)
             refreshApps()
         }
     }
@@ -36,7 +36,7 @@ final class HistoryViewModel: ObservableObject {
     static let topAppCount = 5
     private static let appRangeKey = "topApps.range"
     private static var savedAppRange: AppUsageRange {
-        UserDefaults.standard.string(forKey: appRangeKey).flatMap(AppUsageRange.init(rawValue:)) ?? .today
+        AppDefaults.store.string(forKey: appRangeKey).flatMap(AppUsageRange.init(rawValue:)) ?? .today
     }
 
     private var syncObserver: NSObjectProtocol?

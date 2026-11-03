@@ -32,7 +32,7 @@ final class MouseBatteryMonitor {
     private(set) var connected: [String: ConnectedMouse] = [:]
 
     private static let enabledKey = "battery.enabled"
-    var isEnabled: Bool { UserDefaults.standard.bool(forKey: Self.enabledKey) }
+    var isEnabled: Bool { AppDefaults.store.bool(forKey: Self.enabledKey) }
 
     private var hidppManager: IOHIDManager?
     private var motionManager: IOHIDManager?
@@ -73,7 +73,7 @@ final class MouseBatteryMonitor {
 
     /// Turning on asks for Input Monitoring, once; macOS shows the prompt.
     func setEnabled(_ enabled: Bool) {
-        UserDefaults.standard.set(enabled, forKey: Self.enabledKey)
+        AppDefaults.store.set(enabled, forKey: Self.enabledKey)
         if enabled {
             if IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) != kIOHIDAccessTypeGranted {
                 _ = IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
@@ -365,9 +365,9 @@ final class MouseBatteryMonitor {
     private func note(_ event: String) {
         let formatter = DateFormatter()
         formatter.dateFormat = "MM-dd HH:mm:ss"
-        var events = UserDefaults.standard.stringArray(forKey: "diagnostics.batteryEvents") ?? []
+        var events = AppDefaults.store.stringArray(forKey: "diagnostics.batteryEvents") ?? []
         events.append("\(formatter.string(from: Date())) \(event)")
-        UserDefaults.standard.set(Array(events.suffix(40)), forKey: "diagnostics.batteryEvents")
+        AppDefaults.store.set(Array(events.suffix(40)), forKey: "diagnostics.batteryEvents")
     }
 
     /// Readable with `defaults read com.smanke.MouseMileage`, to check what
@@ -381,8 +381,8 @@ final class MouseBatteryMonitor {
             }
             return entry
         }
-        UserDefaults.standard.set(mice, forKey: "diagnostics.batteryMice")
-        UserDefaults.standard.set("\(status)", forKey: "diagnostics.batteryStatus")
+        AppDefaults.store.set(mice, forKey: "diagnostics.batteryMice")
+        AppDefaults.store.set("\(status)", forKey: "diagnostics.batteryStatus")
     }
 }
 

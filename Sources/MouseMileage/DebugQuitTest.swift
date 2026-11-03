@@ -14,7 +14,7 @@ enum DebugQuitTest {
             MainActor.assumeIsolated {
                 if how == "off" { QuitConfirmation.isOn = false }
                 note("debug.quitTest", "no question; policy \(NSApp.activationPolicy().rawValue)")
-                UserDefaults.standard.removeObject(forKey: "debug.quitTestAfter")
+                AppDefaults.store.removeObject(forKey: "debug.quitTestAfter")
                 answer(how, after: 1)
                 NSApp.terminate(nil)
                 // Still running: the question was cancelled. The old policy comes back a turn later.
@@ -26,8 +26,8 @@ enum DebugQuitTest {
     }
 
     private static func note(_ key: String, _ value: String) {
-        UserDefaults.standard.set(value, forKey: key)
-        UserDefaults.standard.synchronize()
+        AppDefaults.store.set(value, forKey: key)
+        AppDefaults.store.synchronize()
     }
 
     /// A timer in `.common` mode, since a plain scheduled one doesn't fire inside runModal.

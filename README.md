@@ -42,6 +42,7 @@ Requires macOS 13 or later, Intel or Apple silicon. Signed with Developer ID and
 - **Mileage per battery charge**: Optional, for Logitech mice and the Apple Magic Mouse: how far the mouse travels on one charge, with a low-battery warning.
 - **Make the menu yours**: Choose which cards appear in the menu, in the More Charts flyout, in both or in neither, and whether the menu bar shows this Mac or all Macs.
 - **URLs** for ToolHUD, Shortcuts or scripts: `m3tracker://today`, `m3tracker://by-day` and `m3tracker://year` open the charts.
+- **Command line and AI agents**: `m3 totals show`, `m3 apps list` and more, for scripts, Claude Code and Codex, plus an MCP server.
 - **Settings sync**: Your menu, app list, warning and update choices can follow you to every Mac on the same iCloud account.
 - **What's new**: The update window shows the notes for the latest releases, marking the ones you don't have yet. What's New… in Settings › Sync & Updates shows them any time.
 - **Resizable Settings**: Drag Settings bigger to see more at once; it keeps the size you choose for every tab.
@@ -190,6 +191,32 @@ Hour and the flyout holds everything, so the menu fits a laptop screen without
 scrolling. The flyout lays out four or more cards in two columns. Both views are
 measured when they're built, so they are rebuilt whenever the choice changes.
 
+## Command line and AI agents
+
+M3 Tracker is also a command line tool, so scripts and AI agents (Claude Code, Codex) can read your totals, charts,
+per-app numbers and mouse battery mileage, for this Mac and all your Macs, reset counters, rename a mouse, choose
+what the menu bar shows, and open the charts or Settings. Commands run in the open app, and the menu shows each
+change at once. Link it once to type `m3`:
+
+```bash
+ln -s "/Applications/M3 Tracker.app/Contents/MacOS/MouseMileage" ~/.local/bin/m3
+```
+
+```bash
+m3 help
+m3 totals show --json
+m3 history show --chart by-day
+m3 apps list --range 7days --sort clicks --limit 10
+```
+
+Every command takes `--json`. Resetting a counter or a mouse's charge history only shows what it would reset until
+you add `--yes`. For MCP apps such as Claude Desktop, the same commands are served by
+`"/Applications/M3 Tracker.app/Contents/MacOS/MouseMileage" mcp`:
+
+```bash
+claude mcp add --scope user m3 -- "/Applications/M3 Tracker.app/Contents/MacOS/MouseMileage" mcp
+```
+
 ## Mileage per app
 
 Mileage, clicks, and keystrokes are also credited to whichever app **has focus**
@@ -332,7 +359,10 @@ M3_SYNC_FOLDER=/tmp/m3-sync swift run
 ```
 
 `M3_SYNC_FOLDER` keeps a debug run from overwriting the installed app's iCloud
-file. Tests cover chart merging across time zones and the sync-folder behavior:
+file. To try the `m3` command line on test data, run a Debug build with
+`APP_STORE=/tmp/m3-test` in front: it starts a test copy with its own counts and settings
+(`com.smanke.MouseMileage.agenttest`) and its own sync folder, and nothing else. Release builds
+ignore `APP_STORE`. Tests cover chart merging across time zones and the sync-folder behavior:
 
 ```bash
 swift test

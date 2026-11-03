@@ -67,7 +67,7 @@ enum UpdateController {
                     return
                 case .install:
                     // Seen here, so Settings needn't show them again after the restart.
-                    UserDefaults.standard.set(release.version, forKey: WhatsNew.shownInPromptKey)
+                    AppDefaults.store.set(release.version, forKey: WhatsNew.shownInPromptKey)
                 }
 
                 let stagedApp = try await downloadAndStage(release)

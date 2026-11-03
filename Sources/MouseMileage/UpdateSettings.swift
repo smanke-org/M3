@@ -13,8 +13,8 @@ enum UpdateSettings {
     /// it; asking again on every launch would just be nagging. Checking
     /// manually still offers it.
     static var skippedUpdateVersion: String? {
-        get { UserDefaults.standard.string(forKey: Key.skippedUpdateVersion) }
-        set { UserDefaults.standard.set(newValue, forKey: Key.skippedUpdateVersion) }
+        get { AppDefaults.store.string(forKey: Key.skippedUpdateVersion) }
+        set { AppDefaults.store.set(newValue, forKey: Key.skippedUpdateVersion) }
     }
 }
 
@@ -39,11 +39,11 @@ enum UpdatePolicy: String, CaseIterable {
 
     static var current: UpdatePolicy {
         get {
-            if let raw = UserDefaults.standard.string(forKey: key), let policy = UpdatePolicy(rawValue: raw) { return policy }
+            if let raw = AppDefaults.store.string(forKey: key), let policy = UpdatePolicy(rawValue: raw) { return policy }
             // 1.15.17 and earlier had only "Check for updates when the app opens".
-            if UserDefaults.standard.object(forKey: "checkForUpdatesAtLaunch") as? Bool == false { return .off }
+            if AppDefaults.store.object(forKey: "checkForUpdatesAtLaunch") as? Bool == false { return .off }
             return .ask
         }
-        set { UserDefaults.standard.set(newValue.rawValue, forKey: key) }
+        set { AppDefaults.store.set(newValue.rawValue, forKey: key) }
     }
 }

@@ -13,24 +13,24 @@ enum MenuBarSettings {
     }
 
     static func registerDefaults() {
-        UserDefaults.standard.register(defaults: [Key.marksAllMacs: true])
+        AppDefaults.store.register(defaults: [Key.marksAllMacs: true])
     }
 
     /// Show the combined total across every Mac instead of this Mac's own.
     /// Off by default, which matches how the menu bar worked before syncing.
     static var showsAllMacs: Bool {
-        get { UserDefaults.standard.bool(forKey: Key.showsAllMacs) }
+        get { AppDefaults.store.bool(forKey: Key.showsAllMacs) }
         set {
-            UserDefaults.standard.set(newValue, forKey: Key.showsAllMacs)
+            AppDefaults.store.set(newValue, forKey: Key.showsAllMacs)
             NotificationCenter.default.post(name: didChangeNotification, object: nil)
         }
     }
 
     /// Prefix an All Macs total with "Σ". On by default.
     static var marksAllMacs: Bool {
-        get { UserDefaults.standard.bool(forKey: Key.marksAllMacs) }
+        get { AppDefaults.store.bool(forKey: Key.marksAllMacs) }
         set {
-            UserDefaults.standard.set(newValue, forKey: Key.marksAllMacs)
+            AppDefaults.store.set(newValue, forKey: Key.marksAllMacs)
             NotificationCenter.default.post(name: didChangeNotification, object: nil)
         }
     }

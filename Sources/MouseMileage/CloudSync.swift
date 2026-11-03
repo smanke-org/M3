@@ -32,9 +32,9 @@ enum DeviceIdentity {
     /// Only reached if IOKit won't give up the hardware UUID.
     private static func fallbackUUID() -> String {
         let key = "sync.fallbackDeviceUUID"
-        if let existing = UserDefaults.standard.string(forKey: key) { return existing }
+        if let existing = AppDefaults.store.string(forKey: key) { return existing }
         let created = UUID().uuidString
-        UserDefaults.standard.set(created, forKey: key)
+        AppDefaults.store.set(created, forKey: key)
         return created
     }
 }
@@ -131,7 +131,7 @@ final class CloudSync {
     private init() {
         // Last-known totals from the other Macs, so All Macs is right at launch
         // instead of briefly showing only this Mac until the first read lands.
-        if let data = UserDefaults.standard.data(forKey: Keys.remoteCache),
+        if let data = AppDefaults.store.data(forKey: Keys.remoteCache),
            let cached = try? Self.decoder.decode([String: DeviceRecord].self, from: data) {
             remoteRecords = cached
         }
@@ -144,6 +144,13 @@ final class CloudSync {
     /// `M3_SYNC_FOLDER` redirects it, so a debug build — which shares this Mac's
     /// device ID — can be tested without overwriting the installed app's file.
     static func syncFolder() -> URL? {
+        #if DEBUG
+        // An agent CLI test copy (APP_STORE) shares this Mac's device ID too: its "iCloud"
+        // folder is inside the test data, so it can never write over the real file.
+        if AgentSocket.isTestRun, let store = ProcessInfo.processInfo.environment["APP_STORE"] {
+            return URL(fileURLWithPath: store, isDirectory: true).appendingPathComponent("Devices", isDirectory: true)
+        }
+        #endif
         if let override = ProcessInfo.processInfo.environment["M3_SYNC_FOLDER"], !override.isEmpty {
             return URL(fileURLWithPath: override, isDirectory: true)
         }
@@ -321,7 +328,7 @@ final class CloudSync {
         isAvailable = true
 
         if let data = try? Self.encoder.encode(remoteRecords) {
-            UserDefaults.standard.set(data, forKey: Keys.remoteCache)
+            AppDefaults.store.set(data, forKey: Keys.remoteCache)
         }
         recordDiagnostics()
         NotificationCenter.default.post(name: Self.didUpdateNotification, object: self)
@@ -337,8 +344,8 @@ final class CloudSync {
     /// the app with `defaults read com.smanke.MouseMileage`.
     private func recordDiagnostics() {
         let miles = allMacsPoints / 72.0 / 12.0 / 5280.0
-        UserDefaults.standard.set(miles, forKey: Keys.allMacsMiles)
-        UserDefaults.standard.set(macCount, forKey: Keys.macCount)
+        AppDefaults.store.set(miles, forKey: Keys.allMacsMiles)
+        AppDefaults.store.set(macCount, forKey: Keys.macCount)
     }
 
     // MARK: - Coordinated file access

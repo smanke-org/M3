@@ -24,8 +24,8 @@ final class PreferencesViewModel: ObservableObject {
     /// Every app, ranked by mileage. The full list behind the menu's Top Apps card.
     @Published var appRows: [AppRanking.Row] = []
     /// The column the Apps list is sorted by, and which way. Remembered.
-    @Published private(set) var appSort: AppSortColumn = AppSortColumn(rawValue: UserDefaults.standard.string(forKey: "apps.sort") ?? "") ?? .distance
-    @Published private(set) var appSortAscending = UserDefaults.standard.bool(forKey: "apps.sortAscending")
+    @Published private(set) var appSort: AppSortColumn = AppSortColumn(rawValue: AppDefaults.store.string(forKey: "apps.sort") ?? "") ?? .distance
+    @Published private(set) var appSortAscending = AppDefaults.store.bool(forKey: "apps.sortAscending")
 
     var sortedAppRows: [AppRanking.Row] {
         AppSortColumn.sorted(appRows, by: appSort, ascending: appSortAscending)
@@ -40,8 +40,8 @@ final class PreferencesViewModel: ObservableObject {
             appSort = column
             appSortAscending = column == .name
         }
-        UserDefaults.standard.set(appSort.rawValue, forKey: "apps.sort")
-        UserDefaults.standard.set(appSortAscending, forKey: "apps.sortAscending")
+        AppDefaults.store.set(appSort.rawValue, forKey: "apps.sort")
+        AppDefaults.store.set(appSortAscending, forKey: "apps.sortAscending")
     }
     @Published var appRange: AppUsageRange = .allTime {
         didSet { refreshApps() }
