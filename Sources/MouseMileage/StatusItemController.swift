@@ -97,7 +97,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         self.chartsItem = chartsItem
         menu.addItem(chartsItem)
 
-        let flyoutItem = NSMenuItem(title: "More Charts", action: nil, keyEquivalent: "")
+        let flyoutItem = NSMenuItem(title: "More Charts", action: nil, keyEquivalent: "").showIcon("chart.bar")
         flyoutMenu.delegate = self
         flyoutMenu.addItem(NSMenuItem())
         flyoutItem.submenu = flyoutMenu
@@ -110,10 +110,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         helpEntry.target = self
         helpEntry.image = NSImage(systemSymbolName: "questionmark.circle", accessibilityDescription: nil)
         menu.addItem(withTitle: "Settings…", action: #selector(openPreferences), keyEquivalent: ",")
-            .target = self
+            .showIcon("gearshape").target = self
         let updateItem = menu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
         updateItem.target = self
         updateItem.toolTip = "Download and install the latest release from GitHub, then restart."
+        updateItem.showIcon("arrow.down.circle")
         self.updateItem = updateItem
 
         // Replaces the old "Check for Updates at Launch" switch: the same three choices as Settings.
@@ -205,6 +206,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             updateItem?.title = "Check for Updates…"
             updateItem?.toolTip = "Download and install the latest release from GitHub, then restart."
         }
+        // A new title drops the icon, so it goes back in.
+        updateItem?.showIcon("arrow.down.circle")
     }
 
     func menuDidClose(_ menu: NSMenu) {
